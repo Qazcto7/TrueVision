@@ -46,11 +46,16 @@ public class AntiInvisConfig {
     }
 
     public static void setVisionMode(VisionMode mode) {
-        INSTANCE.visionMode = mode;
-        save();
+        if (mode != null) {
+            INSTANCE.visionMode = mode;
+            save();
+        }
     }
 
     public static VisionMode cycleMode() {
+        if (INSTANCE.visionMode == null) {
+            INSTANCE.visionMode = VisionMode.OPAQUE_GLOWING;
+        }
         INSTANCE.visionMode = INSTANCE.visionMode.next();
         save();
         return INSTANCE.visionMode;
@@ -80,6 +85,12 @@ public class AntiInvisConfig {
         save();
     }
 
+    public static boolean toggleAffectPlayersOnly() {
+        INSTANCE.affectPlayersOnly = !INSTANCE.affectPlayersOnly;
+        save();
+        return INSTANCE.affectPlayersOnly;
+    }
+
     public static boolean isShowNameBadge() {
         return INSTANCE.showNameBadge;
     }
@@ -99,6 +110,10 @@ public class AntiInvisConfig {
             AntiInvisConfig config = GSON.fromJson(reader, AntiInvisConfig.class);
             if (config != null) {
                 INSTANCE = config;
+                // Eksik/bozuk alanlar için varsayılanlara geri dönüş güvencesi
+                if (INSTANCE.visionMode == null) {
+                    INSTANCE.visionMode = VisionMode.OPAQUE_GLOWING;
+                }
             }
         } catch (Exception e) {
             LOGGER.error("[Anti-Invis] Yapılandırma dosyası okunamadı, varsayılan ayarlar korunuyor.", e);

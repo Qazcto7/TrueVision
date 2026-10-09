@@ -7,9 +7,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -28,10 +30,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *    zırhları ve silahları normal bir varlık gibi render kuyruğuna sokar.
  * 2. TRANSLUCENT modunda: Spectator modundaki gibi state.isInvisible = true ve
  *    state.isInvisibleToPlayer = false bırakarak varlığı yarı saydam (alpha ~0.5f) render ettirir.
- * 3. OPAQUE_GLOWING modunda: state.outlineColor = 0xFFFFFF yaparak parlayan dış silüet ekler.
- *    seeThroughWalls kontrolü ile duvar arkasındaki varlıkların parlaması isteğe göre engellenir.
+ * 3. OPAQUE_GLOWING modunda: state.outlineColor = 0xFFFFFFFF (veya teamColor) yaparak
+ *    parlayan dış silüet ekler. seeThroughWalls kontrolü ile duvar arkasındaki varlıkların
+ *    parlaması isteğe göre engellenir.
  * 4. İsim Etiketi Fallback: Eğilen (crouching) veya etiketi gizlenmiş oyuncuların isimlerini
- *    getDisplayName() ve getName() ile alarak "[GÖRÜNMEZ]" etiketi ekler.
+ *    getDisplayName() ve getName() ile alarak "[GÖRÜNMEZ]" etiketi ekler. Çift prefix eklenmesini engeller.
  *
  * UYUMLULUK:
  * - Doğrudan çizim komutlarına (submit/render), VertexConsumer'a veya MultiBufferSource tamponlarına dokunulmaz.
@@ -68,6 +71,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                     // olduğunda itemEntityTranslucentCull katmanını devreye sokar.
                     state.isInvisible = true;
                     state.isInvisibleToPlayer = false;
+                    state.outlineColor = 0;
                 }
                 case OPAQUE_GLOWING -> {
                     // Tam opak model, zırh ve tutulan eşyalar
@@ -84,7 +88,12 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                     }
 
                     if (shouldGlow) {
-                        state.outlineColor = 0xFFFFFF;
+                        int teamColor = entity.getTeamColor();
+                        state.outlineColor = (teamColor != 0xFFFFFF && teamColor != 0) 
+                            ? ARGB.opaque(teamColor) 
+                            : 0xFFFFFFFF;
+                    } else {
+                        state.outlineColor = 0;
                     }
 
                     if (AntiInvisConfig.isShowNameBadge()) {
@@ -95,12 +104,14 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                     // Tam opak model, zırh ve eşyalar + İsim Etiketinde Belirteç
                     state.isInvisible = false;
                     state.isInvisibleToPlayer = false;
+                    state.outlineColor = 0;
                     attachNameBadge(entity, state);
                 }
                 case OPAQUE_PURE -> {
                     // Tam opak normal render (belirteçsiz)
                     state.isInvisible = false;
                     state.isInvisibleToPlayer = false;
+                    state.outlineColor = 0;
                 }
             }
         }
@@ -108,10 +119,14 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
 
     /**
      * İsim etiketini ekler veya eğilen/etiketsiz oyuncular için fallback olarak displayName/name kullanır.
+     * Çift eklemeleri (string duplicate) engeller ve nameTagAttachment null kontrolü yapar.
      */
     private void attachNameBadge(T entity, S state) {
         if (state.nameTag != null) {
-            state.nameTag = Component.literal("§d[GÖRÜNMEZ] ").append(state.nameTag);
+            String currentName = state.nameTag.getString();
+            if (!currentName.contains("[GÖRÜNMEZ]")) {
+                state.nameTag = Component.literal("§d[GÖRÜNMEZ] ").append(state.nameTag);
+            }
         } else {
             Component name = entity.getDisplayName();
             if (name == null) {
@@ -119,6 +134,9 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             }
             if (name != null) {
                 state.nameTag = Component.literal("§d[GÖRÜNMEZ] ").append(name);
+                if (state.nameTagAttachment == null) {
+                    state.nameTagAttachment = new Vec3(0.0, entity.getBbHeight() + 0.5, 0.0);
+                }
             }
         }
     }

@@ -6,6 +6,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
@@ -88,6 +89,10 @@ public class AntiInvisClient implements ClientModInitializer {
                     context.getSource().sendFeedback(Component.literal(msg));
                     return 1;
                 }))
+                .then(literal("status").executes(context -> {
+                    sendStatusReport(context.getSource());
+                    return 1;
+                }))
             );
 
             dispatcher.register(literal("ai")
@@ -107,6 +112,10 @@ public class AntiInvisClient implements ClientModInitializer {
                     boolean stw = AntiInvisConfig.toggleSeeThroughWalls();
                     String msg = "§6[Anti-Invis] §7Duvardan Görme (Wallhack): " + (stw ? "§aAÇIK" : "§cKAPALI");
                     context.getSource().sendFeedback(Component.literal(msg));
+                    return 1;
+                }))
+                .then(literal("status").executes(context -> {
+                    sendStatusReport(context.getSource());
                     return 1;
                 }))
             );
@@ -166,6 +175,21 @@ public class AntiInvisClient implements ClientModInitializer {
                 Component.literal(newMode.getDisplayName())
             );
         }
+    }
+
+    private static void sendStatusReport(FabricClientCommandSource source) {
+        boolean enabled = AntiInvisConfig.isEnabled();
+        VisionMode mode = AntiInvisConfig.getVisionMode();
+        boolean wallhack = AntiInvisConfig.isSeeThroughWalls();
+        boolean playersOnly = AntiInvisConfig.isAffectPlayersOnly();
+
+        source.sendFeedback(Component.literal("§6===== [Anti-Invisibility Durum Raporu] ====="));
+        source.sendFeedback(Component.literal("§7Durum: " + (enabled ? "§aAÇIK" : "§cKAPALI")));
+        source.sendFeedback(Component.literal("§7Görünüm Modu: §e" + mode.getDisplayName()));
+        source.sendFeedback(Component.literal("§7Duvardan Görme (Wallhack): " + (wallhack ? "§aAÇIK" : "§cKAPALI")));
+        source.sendFeedback(Component.literal("§7Yalnızca Oyuncular: " + (playersOnly ? "§aAÇIK" : "§7KAPALI (Tüm Varlıklar)")));
+        source.sendFeedback(Component.literal("§7Kısayol Tuşları: §f[V] §7Aç/Kapa | §f[B] §7Mod Değiştir"));
+        source.sendFeedback(Component.literal("§6==========================================="));
     }
 
     public static boolean isEnabled() {
