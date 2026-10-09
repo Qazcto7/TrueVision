@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "antiinvis",
-  "version": "${version}",
+  "version": "1.0.0",
   "name": "Anti-Invisibility (True Vision)",
   "description": "Minecraft 26.3 Render State mimarisine özel, Sodium, Iris ve ImmediatelyFast uyumlu istemci taraflı görünmezlik engelleyici modu.",
   "authors": [

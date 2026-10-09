@@ -2,21 +2,24 @@ package com.antiinvis;
 
 import com.antiinvis.config.AntiInvisConfig;
 import com.antiinvis.config.VisionMode;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * İstemci tarafı mod ana giriş noktası.
- * Kısayol tuşlarını tanımlar, yapılandırmayı yükler, sesli ve görsel bildirimleri yönetir.
+ * Kısayol tuşlarını ('V' ve 'B'), /antiinvis sohbet komutunu ve bildirimleri yönetir.
  */
 public class AntiInvisClient implements ClientModInitializer {
     public static final String MOD_ID = "antiinvis";
@@ -29,89 +32,140 @@ public class AntiInvisClient implements ClientModInitializer {
     public void onInitializeClient() {
         LOGGER.info("[Anti-Invis] İstemci modu başlatılıyor...");
 
-        // Yapılandırma ayarlarını yükle
         AntiInvisConfig.load();
+
+        // Minecraft 26.3 tablosundaki 'V' (25) ve 'B' (5) değerlerini bağla
+        int keyV = InputConstants.getKey("key.keyboard.v").getValue();
+        int keyB = InputConstants.getKey("key.keyboard.b").getValue();
 
         // 1. Aç/Kapa kısayol tuşu ('V' tuşu)
         toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.antiinvis.toggle",
-            GLFW.GLFW_KEY_V,
+            keyV,
             KeyMapping.Category.GAMEPLAY
         ));
 
         // 2. Görünüm modu değiştirme kısayol tuşu ('B' tuşu)
         modeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.antiinvis.cycle_mode",
-            GLFW.GLFW_KEY_B,
+            keyB,
             KeyMapping.Category.GAMEPLAY
         ));
 
-        // İstemci tick dinleyicisi: tuş tıklamalarını yakala, ses çal ve bildirim göster
+        // İstemci tick dinleyicisi: tuş tıklamalarını yakala
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null) {
                 return;
             }
 
-            // 'V' tuşuna basıldığında aç / kapa yap
             while (toggleKey.consumeClick()) {
-                boolean newState = !AntiInvisConfig.isEnabled();
-                AntiInvisConfig.setEnabled(newState);
-
-                // Hafif tıklama sesi
-                if (client.getSoundManager() != null) {
-                    client.getSoundManager().play(
-                        SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, newState ? 1.2f : 0.8f)
-                    );
-                }
-
-                // Bildirim metinleri
-                String status = newState ? "§aAÇIK" : "§cKAPALI";
-                String modeName = AntiInvisConfig.getVisionMode().getDisplayName();
-                String message = "§6[Anti-Invis] " + status + (newState ? " §7(Mod: " + modeName + "§7)" : "");
-
-                // 1. ActionBar Bildirimi
-                client.player.sendOverlayMessage(Component.literal(message));
-
-                // 2. Ekranda küçük Toast bildirimi
-                if (client.gui != null && client.gui.toastManager() != null) {
-                    SystemToast.addOrUpdate(
-                        client.gui.toastManager(),
-                        SystemToast.SystemToastId.NARRATOR_TOGGLE,
-                        Component.literal("§6Anti-Invis"),
-                        Component.literal(status + (newState ? " §7(" + modeName + "§7)" : ""))
-                    );
-                }
+                toggleAction(client);
             }
 
-            // 'B' tuşuna basıldığında modu döngüsel olarak değiştir
             while (modeKey.consumeClick()) {
-                VisionMode newMode = AntiInvisConfig.cycleMode();
-
-                // Hafif tıklama sesi
-                if (client.getSoundManager() != null) {
-                    client.getSoundManager().play(
-                        SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f)
-                    );
-                }
-
-                String message = "§6[Anti-Invis] §7Görünüm Modu: " + newMode.getDisplayName();
-
-                // 1. ActionBar Bildirimi
-                client.player.sendOverlayMessage(Component.literal(message));
-
-                // 2. Ekranda küçük Toast bildirimi
-                if (client.gui != null && client.gui.toastManager() != null) {
-                    SystemToast.addOrUpdate(
-                        client.gui.toastManager(),
-                        SystemToast.SystemToastId.NARRATOR_TOGGLE,
-                        Component.literal("§6Görünüm Modu"),
-                        Component.literal(newMode.getDisplayName())
-                    );
-                }
+                cycleModeAction(client);
             }
         });
 
-        LOGGER.info("[Anti-Invis] Başarıyla yüklendi. Sodium, Iris, ImmediatelyFast ve ModernFix ile tam uyumlu.");
+        // Sohbet komutları (/antiinvis ve /ai)
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            dispatcher.register(literal("antiinvis")
+                .executes(context -> {
+                    toggleAction(Minecraft.getInstance());
+                    return 1;
+                })
+                .then(literal("toggle").executes(context -> {
+                    toggleAction(Minecraft.getInstance());
+                    return 1;
+                }))
+                .then(literal("mode").executes(context -> {
+                    cycleModeAction(Minecraft.getInstance());
+                    return 1;
+                }))
+                .then(literal("wallhack").executes(context -> {
+                    boolean stw = AntiInvisConfig.toggleSeeThroughWalls();
+                    String msg = "§6[Anti-Invis] §7Duvardan Görme (Wallhack): " + (stw ? "§aAÇIK" : "§cKAPALI");
+                    context.getSource().sendFeedback(Component.literal(msg));
+                    return 1;
+                }))
+            );
+
+            dispatcher.register(literal("ai")
+                .executes(context -> {
+                    toggleAction(Minecraft.getInstance());
+                    return 1;
+                })
+                .then(literal("toggle").executes(context -> {
+                    toggleAction(Minecraft.getInstance());
+                    return 1;
+                }))
+                .then(literal("mode").executes(context -> {
+                    cycleModeAction(Minecraft.getInstance());
+                    return 1;
+                }))
+                .then(literal("wallhack").executes(context -> {
+                    boolean stw = AntiInvisConfig.toggleSeeThroughWalls();
+                    String msg = "§6[Anti-Invis] §7Duvardan Görme (Wallhack): " + (stw ? "§aAÇIK" : "§cKAPALI");
+                    context.getSource().sendFeedback(Component.literal(msg));
+                    return 1;
+                }))
+            );
+        });
+
+        LOGGER.info("[Anti-Invis] Başarıyla yüklendi. 'V' ve 'B' tuşları aktif, /antiinvis komutu devrede.");
+    }
+
+    public static void toggleAction(Minecraft client) {
+        boolean newState = !AntiInvisConfig.isEnabled();
+        AntiInvisConfig.setEnabled(newState);
+
+        if (client.getSoundManager() != null) {
+            client.getSoundManager().play(
+                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, newState ? 1.2f : 0.8f)
+            );
+        }
+
+        String status = newState ? "§aAÇIK" : "§cKAPALI";
+        String modeName = AntiInvisConfig.getVisionMode().getDisplayName();
+        String message = "§6[Anti-Invis] " + status + (newState ? " §7(Mod: " + modeName + "§7)" : "");
+
+        if (client.player != null) {
+            client.player.sendOverlayMessage(Component.literal(message));
+        }
+
+        if (client.gui != null && client.gui.toastManager() != null) {
+            SystemToast.addOrUpdate(
+                client.gui.toastManager(),
+                SystemToast.SystemToastId.NARRATOR_TOGGLE,
+                Component.literal("§6Anti-Invis"),
+                Component.literal(status + (newState ? " §7(" + modeName + "§7)" : ""))
+            );
+        }
+    }
+
+    public static void cycleModeAction(Minecraft client) {
+        VisionMode newMode = AntiInvisConfig.cycleMode();
+
+        if (client.getSoundManager() != null) {
+            client.getSoundManager().play(
+                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f)
+            );
+        }
+
+        String message = "§6[Anti-Invis] §7Görünüm Modu: " + newMode.getDisplayName();
+
+        if (client.player != null) {
+            client.player.sendOverlayMessage(Component.literal(message));
+        }
+
+        if (client.gui != null && client.gui.toastManager() != null) {
+            SystemToast.addOrUpdate(
+                client.gui.toastManager(),
+                SystemToast.SystemToastId.NARRATOR_TOGGLE,
+                Component.literal("§6Görünüm Modu"),
+                Component.literal(newMode.getDisplayName())
+            );
+        }
     }
 
     public static boolean isEnabled() {
