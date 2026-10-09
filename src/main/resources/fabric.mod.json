@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "antiinvis",
+  "version": "${version}",
+  "name": "Anti-Invisibility (True Vision)",
+  "description": "Minecraft 26.3 Render State mimarisine özel, Sodium, Iris ve ImmediatelyFast uyumlu istemci taraflı görünmezlik engelleyici modu.",
+  "authors": [
+    "Antigravity"
+  ],
+  "contact": {
+    "sources": "https://github.com/example/anti-invisibility"
+  },
+  "license": "MIT",
+  "icon": "assets/antiinvis/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.antiinvis.AntiInvisClient"
+    ]
+  },
+  "mixins": [
+    "antiinvis.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": ">=26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "sodium": "*",
+    "iris": "*",
+    "immediatelyfast": "*"
+  }
+}

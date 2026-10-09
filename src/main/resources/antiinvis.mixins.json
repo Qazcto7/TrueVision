@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.antiinvis.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "EntityMixin",
+    "LivingEntityRendererMixin",
+    "MinecraftMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
