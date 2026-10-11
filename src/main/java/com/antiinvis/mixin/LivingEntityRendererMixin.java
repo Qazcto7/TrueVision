@@ -33,8 +33,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 3. OPAQUE_GLOWING modunda: state.outlineColor = 0xFFFFFFFF (veya teamColor) yaparak
  *    parlayan dış silüet ekler. seeThroughWalls kontrolü ile duvar arkasındaki varlıkların
  *    parlaması isteğe göre engellenir.
- * 4. İsim Etiketi Fallback: Eğilen (crouching) veya etiketi gizlenmiş oyuncuların isimlerini
- *    getDisplayName() ve getName() ile alarak "[GÖRÜNMEZ]" etiketi ekler. Çift prefix eklenmesini engeller.
+ * 4. İsim Etiketi: Eğilen (crouching) veya etiketi gizlenmiş görünmez oyuncuların isimlerini
+ *    getDisplayName() ve getName() ile alarak "[GÖRÜNMEZ]" etiketi ekler.
+ *    İsimsiz mob'ların mağaralarda gereksiz etiketle dolmasını engeller.
  *
  * UYUMLULUK:
  * - Doğrudan çizim komutlarına (submit/render), VertexConsumer'a veya MultiBufferSource tamponlarına dokunulmaz.
@@ -66,9 +67,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
 
             switch (mode) {
                 case TRANSLUCENT -> {
-                    // Spectator tarzı yarı saydam (translucent / alpha ~0.5f) render:
-                    // Vanilla render pipeline: isInvisible == true ve isInvisibleToPlayer == false
-                    // olduğunda itemEntityTranslucentCull katmanını devreye sokar.
+                    // Spectator tarzı yarı saydam (translucent / alpha ~0.5f) render
                     state.isInvisible = true;
                     state.isInvisibleToPlayer = false;
                     state.outlineColor = 0;
@@ -118,8 +117,10 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
     }
 
     /**
-     * İsim etiketini ekler veya eğilen/etiketsiz oyuncular için fallback olarak displayName/name kullanır.
-     * Çift eklemeleri (string duplicate) engeller ve nameTagAttachment null kontrolü yapar.
+     * İsim etiketini ekler.
+     * - Oyuncular veya özel isimli varlıklar için fallback olarak displayName/name kullanır.
+     * - İsimsiz rastgele mob'lar için etiket oluşturmaz.
+     * - Çift eklemeleri (string duplicate) engeller ve nameTagAttachment null kontrolü yapar.
      */
     private void attachNameBadge(T entity, S state) {
         if (state.nameTag != null) {
@@ -127,7 +128,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             if (!currentName.contains("[GÖRÜNMEZ]")) {
                 state.nameTag = Component.literal("§d[GÖRÜNMEZ] ").append(state.nameTag);
             }
-        } else {
+        } else if (entity instanceof Player || entity.hasCustomName()) {
             Component name = entity.getDisplayName();
             if (name == null) {
                 name = entity.getName();

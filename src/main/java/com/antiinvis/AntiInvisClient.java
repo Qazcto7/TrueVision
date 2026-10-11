@@ -20,11 +20,13 @@ import org.slf4j.LoggerFactory;
 
 /**
  * İstemci tarafı mod ana giriş noktası.
- * Kısayol tuşlarını ('V' ve 'B'), /antiinvis sohbet komutunu ve bildirimleri yönetir.
+ * Kısayol tuşlarını ('V' ve 'B'), /antiinvis ve /ai komutlarını ve bildirimleri yönetir.
  */
 public class AntiInvisClient implements ClientModInitializer {
     public static final String MOD_ID = "antiinvis";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+    private static final SystemToast.SystemToastId TOAST_ID = new SystemToast.SystemToastId();
 
     private static KeyMapping toggleKey;
     private static KeyMapping modeKey;
@@ -84,9 +86,11 @@ public class AntiInvisClient implements ClientModInitializer {
                     return 1;
                 }))
                 .then(literal("wallhack").executes(context -> {
-                    boolean stw = AntiInvisConfig.toggleSeeThroughWalls();
-                    String msg = "§6[Anti-Invis] §7Duvardan Görme (Wallhack): " + (stw ? "§aAÇIK" : "§cKAPALI");
-                    context.getSource().sendFeedback(Component.literal(msg));
+                    toggleWallhackAction(context.getSource());
+                    return 1;
+                }))
+                .then(literal("players").executes(context -> {
+                    togglePlayersOnlyAction(context.getSource());
                     return 1;
                 }))
                 .then(literal("status").executes(context -> {
@@ -109,9 +113,11 @@ public class AntiInvisClient implements ClientModInitializer {
                     return 1;
                 }))
                 .then(literal("wallhack").executes(context -> {
-                    boolean stw = AntiInvisConfig.toggleSeeThroughWalls();
-                    String msg = "§6[Anti-Invis] §7Duvardan Görme (Wallhack): " + (stw ? "§aAÇIK" : "§cKAPALI");
-                    context.getSource().sendFeedback(Component.literal(msg));
+                    toggleWallhackAction(context.getSource());
+                    return 1;
+                }))
+                .then(literal("players").executes(context -> {
+                    togglePlayersOnlyAction(context.getSource());
                     return 1;
                 }))
                 .then(literal("status").executes(context -> {
@@ -145,7 +151,7 @@ public class AntiInvisClient implements ClientModInitializer {
         if (client.gui != null && client.gui.toastManager() != null) {
             SystemToast.addOrUpdate(
                 client.gui.toastManager(),
-                SystemToast.SystemToastId.NARRATOR_TOGGLE,
+                TOAST_ID,
                 Component.literal("§6Anti-Invis"),
                 Component.literal(status + (newState ? " §7(" + modeName + "§7)" : ""))
             );
@@ -170,9 +176,35 @@ public class AntiInvisClient implements ClientModInitializer {
         if (client.gui != null && client.gui.toastManager() != null) {
             SystemToast.addOrUpdate(
                 client.gui.toastManager(),
-                SystemToast.SystemToastId.NARRATOR_TOGGLE,
+                TOAST_ID,
                 Component.literal("§6Görünüm Modu"),
                 Component.literal(newMode.getDisplayName())
+            );
+        }
+    }
+
+    private static void toggleWallhackAction(FabricClientCommandSource source) {
+        boolean stw = AntiInvisConfig.toggleSeeThroughWalls();
+        String msg = "§6[Anti-Invis] §7Duvardan Görme (Wallhack): " + (stw ? "§aAÇIK" : "§cKAPALI");
+        source.sendFeedback(Component.literal(msg));
+
+        Minecraft client = Minecraft.getInstance();
+        if (client.getSoundManager() != null) {
+            client.getSoundManager().play(
+                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, stw ? 1.2f : 0.8f)
+            );
+        }
+    }
+
+    private static void togglePlayersOnlyAction(FabricClientCommandSource source) {
+        boolean po = AntiInvisConfig.toggleAffectPlayersOnly();
+        String msg = "§6[Anti-Invis] §7Yalnızca Oyuncuları Göster: " + (po ? "§aAÇIK (Sadece Oyuncular)" : "§eKAPALI (Tüm Varlıklar)");
+        source.sendFeedback(Component.literal(msg));
+
+        Minecraft client = Minecraft.getInstance();
+        if (client.getSoundManager() != null) {
+            client.getSoundManager().play(
+                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, po ? 1.2f : 0.8f)
             );
         }
     }
@@ -187,8 +219,9 @@ public class AntiInvisClient implements ClientModInitializer {
         source.sendFeedback(Component.literal("§7Durum: " + (enabled ? "§aAÇIK" : "§cKAPALI")));
         source.sendFeedback(Component.literal("§7Görünüm Modu: §e" + mode.getDisplayName()));
         source.sendFeedback(Component.literal("§7Duvardan Görme (Wallhack): " + (wallhack ? "§aAÇIK" : "§cKAPALI")));
-        source.sendFeedback(Component.literal("§7Yalnızca Oyuncular: " + (playersOnly ? "§aAÇIK" : "§7KAPALI (Tüm Varlıklar)")));
+        source.sendFeedback(Component.literal("§7Yalnızca Oyuncular: " + (playersOnly ? "§aAÇIK (Sadece Oyuncular)" : "§7KAPALI (Tüm Varlıklar)")));
         source.sendFeedback(Component.literal("§7Kısayol Tuşları: §f[V] §7Aç/Kapa | §f[B] §7Mod Değiştir"));
+        source.sendFeedback(Component.literal("§7Komutlar: §f/ai §7| §f/ai mode §7| §f/ai wallhack §7| §f/ai players"));
         source.sendFeedback(Component.literal("§6==========================================="));
     }
 

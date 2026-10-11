@@ -110,7 +110,6 @@ public class AntiInvisConfig {
             AntiInvisConfig config = GSON.fromJson(reader, AntiInvisConfig.class);
             if (config != null) {
                 INSTANCE = config;
-                // Eksik/bozuk alanlar için varsayılanlara geri dönüş güvencesi
                 if (INSTANCE.visionMode == null) {
                     INSTANCE.visionMode = VisionMode.OPAQUE_GLOWING;
                 }
