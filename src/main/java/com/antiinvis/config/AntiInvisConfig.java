@@ -19,7 +19,7 @@ public class AntiInvisConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("antiinvis.json");
 
-    private static AntiInvisConfig INSTANCE = new AntiInvisConfig();
+    private static volatile AntiInvisConfig INSTANCE = new AntiInvisConfig();
 
     // Ayar değişkenleri
     private boolean enabled = true;
@@ -100,7 +100,13 @@ public class AntiInvisConfig {
         save();
     }
 
-    public static void load() {
+    public static boolean toggleShowNameBadge() {
+        INSTANCE.showNameBadge = !INSTANCE.showNameBadge;
+        save();
+        return INSTANCE.showNameBadge;
+    }
+
+    public static synchronized void load() {
         if (!Files.exists(CONFIG_PATH)) {
             save();
             return;
@@ -109,17 +115,17 @@ public class AntiInvisConfig {
         try (Reader reader = Files.newBufferedReader(CONFIG_PATH)) {
             AntiInvisConfig config = GSON.fromJson(reader, AntiInvisConfig.class);
             if (config != null) {
-                INSTANCE = config;
-                if (INSTANCE.visionMode == null) {
-                    INSTANCE.visionMode = VisionMode.OPAQUE_GLOWING;
+                if (config.visionMode == null) {
+                    config.visionMode = VisionMode.OPAQUE_GLOWING;
                 }
+                INSTANCE = config;
             }
         } catch (Exception e) {
             LOGGER.error("[Anti-Invis] Yapılandırma dosyası okunamadı, varsayılan ayarlar korunuyor.", e);
         }
     }
 
-    public static void save() {
+    public static synchronized void save() {
         try {
             if (CONFIG_PATH.getParent() != null) {
                 Files.createDirectories(CONFIG_PATH.getParent());

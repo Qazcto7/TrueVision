@@ -33,23 +33,24 @@ public abstract class MinecraftMixin {
         require = 0
     )
     private void antiinvis$onShouldEntityAppearGlowing(Entity entity, CallbackInfoReturnable<Boolean> cir) {
-        if (AntiInvisClient.isEnabled() 
-                && AntiInvisConfig.getVisionMode() == VisionMode.OPAQUE_GLOWING) {
+        if (entity == null || !AntiInvisClient.isEnabled() 
+                || AntiInvisConfig.getVisionMode() != VisionMode.OPAQUE_GLOWING) {
+            return;
+        }
 
-            boolean isInvis = entity.isInvisible() 
-                || (entity instanceof LivingEntity living && living.hasEffect(MobEffects.INVISIBILITY));
+        boolean isInvis = entity.isInvisible() 
+            || (entity instanceof LivingEntity living && living.hasEffect(MobEffects.INVISIBILITY));
 
-            if (isInvis) {
-                if (!AntiInvisConfig.isAffectPlayersOnly() || entity instanceof Player) {
-                    // Duvardan parlama kontrolü (seeThroughWalls)
-                    if (!AntiInvisConfig.isSeeThroughWalls()) {
-                        Minecraft mc = (Minecraft) (Object) this;
-                        if (mc.player != null && !mc.player.hasLineOfSight(entity)) {
-                            return; // Blok arkasındaysa parlamasın
-                        }
+        if (isInvis) {
+            if (!AntiInvisConfig.isAffectPlayersOnly() || entity instanceof Player) {
+                // Duvardan parlama kontrolü (seeThroughWalls)
+                if (!AntiInvisConfig.isSeeThroughWalls()) {
+                    Minecraft mc = (Minecraft) (Object) this;
+                    if (mc.player != null && !mc.player.hasLineOfSight(entity)) {
+                        return; // Blok arkasındaysa parlamasın
                     }
-                    cir.setReturnValue(true);
                 }
+                cir.setReturnValue(true);
             }
         }
     }

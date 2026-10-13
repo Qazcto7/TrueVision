@@ -13,6 +13,9 @@ mkdir -p build/libs
 TMP_BUILD=$(mktemp -d)
 TMP_API_DIR=$(mktemp -d)
 
+# Hata olussa dahi gecici dizinleri guvenle temizle
+trap 'rm -rf "$TMP_BUILD" "$TMP_API_DIR"' EXIT
+
 # 1. Java 27 / 25 Derleyici Tespiti
 JAVA_HOME_27="/usr/lib/jvm/java-27-openjdk"
 if [ -d "$JAVA_HOME_27" ]; then
@@ -35,18 +38,18 @@ if [ ! -f "$MC_JAR" ]; then
     exit 1
 fi
 
-LOADER_JAR=$(find /home/kazim/.sklauncher/libraries/net/fabricmc/fabric-loader/ -name "fabric-loader-*.jar" 2>/dev/null | head -n 1)
-MIXIN_JAR=$(find /home/kazim/.sklauncher/libraries/net/fabricmc/sponge-mixin/ -name "sponge-mixin-*.jar" 2>/dev/null | head -n 1)
-GSON_JAR=$(find /home/kazim/.sklauncher/libraries/com/google/code/gson/gson/ -name "gson-*.jar" 2>/dev/null | head -n 1)
-SLF4J_JAR=$(find /home/kazim/.sklauncher/libraries/org/slf4j/slf4j-api/ -name "slf4j-api-*.jar" 2>/dev/null | head -n 1)
-FASTUTIL_JAR=$(find /home/kazim/.sklauncher/libraries/it/unimi/dsi/fastutil/ -name "fastutil-*.jar" 2>/dev/null | head -n 1)
-BRIGADIER_JAR=$(find /home/kazim/.sklauncher/libraries/com/mojang/brigadier/ -name "brigadier-*.jar" 2>/dev/null | head -n 1)
+LOADER_JAR=$(find /home/kazim/.sklauncher/libraries/net/fabricmc/fabric-loader/ -name "fabric-loader-*.jar" 2>/dev/null | sort -V | tail -n 1)
+MIXIN_JAR=$(find /home/kazim/.sklauncher/libraries/net/fabricmc/sponge-mixin/ -name "sponge-mixin-*.jar" 2>/dev/null | sort -V | tail -n 1)
+GSON_JAR=$(find /home/kazim/.sklauncher/libraries/com/google/code/gson/gson/ -name "gson-*.jar" 2>/dev/null | sort -V | tail -n 1)
+SLF4J_JAR=$(find /home/kazim/.sklauncher/libraries/org/slf4j/slf4j-api/ -name "slf4j-api-*.jar" 2>/dev/null | sort -V | tail -n 1)
+FASTUTIL_JAR=$(find /home/kazim/.sklauncher/libraries/it/unimi/dsi/fastutil/ -name "fastutil-*.jar" 2>/dev/null | sort -V | tail -n 1)
+BRIGADIER_JAR=$(find /home/kazim/.sklauncher/libraries/com/mojang/brigadier/ -name "brigadier-*.jar" 2>/dev/null | sort -V | tail -n 1)
 DFU_JAR=$(find /home/kazim/.sklauncher/libraries/com/mojang/datafixerupper/ -name "datafixerupper-*.jar" 2>/dev/null | sort -V | tail -n 1)
 NETTY_JARS=$(find /home/kazim/.sklauncher/libraries/io/netty/ -name "*.jar" 2>/dev/null | tr '\n' ':')
 LWJGL_JARS=$(find /home/kazim/.sklauncher/libraries/org/lwjgl/ -name "*.jar" 2>/dev/null | grep -v "natives" | tr '\n' ':')
 
 # Fabric API modül JAR'larını çıkar ve classpath'e ekle
-FABRIC_API_MOD=$(find /home/kazim/.sklauncher/instances/fabric-latest/mods/ -name "fabric-api-*.jar" 2>/dev/null | head -n 1)
+FABRIC_API_MOD=$(find /home/kazim/.sklauncher/instances/fabric-latest/mods/ -name "fabric-api-*.jar" 2>/dev/null | sort -V | tail -n 1)
 if [ -f "$FABRIC_API_MOD" ]; then
     unzip -q -j "$FABRIC_API_MOD" "META-INF/jars/*.jar" -d "$TMP_API_DIR" 2>/dev/null || true
 fi
@@ -63,10 +66,6 @@ cp -r src/main/resources/* "$TMP_BUILD/"
 OUTPUT_JAR="build/libs/AntiInvis-26.3-1.0.0.jar"
 echo "[3/3] JAR paketi olusturuluyor: $OUTPUT_JAR"
 $JAR_BIN --create --file "$OUTPUT_JAR" -C "$TMP_BUILD" .
-
-# Gecici dizinleri temizle
-rm -rf "$TMP_BUILD"
-rm -rf "$TMP_API_DIR"
 
 # 3. SKLauncher fabric-latest mods klasörüne otomatik kopyala
 DEST_DIR="/home/kazim/.sklauncher/instances/fabric-latest/mods"

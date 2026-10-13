@@ -55,15 +55,22 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             return;
         }
 
+        if (entity == null || state == null) {
+            return;
+        }
+
         if (AntiInvisConfig.isAffectPlayersOnly() && !(entity instanceof Player)) {
             return;
         }
 
-        // 1. Görünmezlik Kontrolü: Hem metadata bayrağı (isInvisible) hem de iksir etkisi (MobEffects.INVISIBILITY)
-        boolean isInvisible = entity.isInvisible() || entity.hasEffect(MobEffects.INVISIBILITY);
+        // 1. Görünmezlik Kontrolü: Render state, metadata bayrağı (isInvisible) ve iksir etkisi (MobEffects.INVISIBILITY)
+        boolean isInvisible = state.isInvisible || entity.isInvisible() || entity.hasEffect(MobEffects.INVISIBILITY);
 
         if (isInvisible) {
             VisionMode mode = AntiInvisConfig.getVisionMode();
+            if (mode == null) {
+                mode = VisionMode.OPAQUE_GLOWING;
+            }
 
             switch (mode) {
                 case TRANSLUCENT -> {
@@ -127,6 +134,9 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             String currentName = state.nameTag.getString();
             if (!currentName.contains("[GÖRÜNMEZ]")) {
                 state.nameTag = Component.literal("§d[GÖRÜNMEZ] ").append(state.nameTag);
+            }
+            if (state.nameTagAttachment == null) {
+                state.nameTagAttachment = new Vec3(0.0, entity.getBbHeight() + 0.5, 0.0);
             }
         } else if (entity instanceof Player || entity.hasCustomName()) {
             Component name = entity.getDisplayName();

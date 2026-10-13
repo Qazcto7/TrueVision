@@ -14,6 +14,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,17 @@ public class AntiInvisClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     private static final SystemToast.SystemToastId TOAST_ID = new SystemToast.SystemToastId();
+
+    private static final KeyMapping.Category CATEGORY;
+    static {
+        KeyMapping.Category cat;
+        try {
+            cat = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("antiinvis", "title"));
+        } catch (Exception e) {
+            cat = KeyMapping.Category.GAMEPLAY;
+        }
+        CATEGORY = cat;
+    }
 
     private static KeyMapping toggleKey;
     private static KeyMapping modeKey;
@@ -45,19 +57,19 @@ public class AntiInvisClient implements ClientModInitializer {
         toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.antiinvis.toggle",
             keyV,
-            KeyMapping.Category.GAMEPLAY
+            CATEGORY
         ));
 
         // 2. Görünüm modu değiştirme kısayol tuşu ('B' tuşu)
         modeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.antiinvis.cycle_mode",
             keyB,
-            KeyMapping.Category.GAMEPLAY
+            CATEGORY
         ));
 
         // İstemci tick dinleyicisi: tuş tıklamalarını yakala
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.player == null) {
+            if (client == null || client.player == null) {
                 return;
             }
 
@@ -93,8 +105,16 @@ public class AntiInvisClient implements ClientModInitializer {
                     togglePlayersOnlyAction(context.getSource());
                     return 1;
                 }))
+                .then(literal("badge").executes(context -> {
+                    toggleBadgeAction(context.getSource());
+                    return 1;
+                }))
                 .then(literal("status").executes(context -> {
                     sendStatusReport(context.getSource());
+                    return 1;
+                }))
+                .then(literal("help").executes(context -> {
+                    sendHelpReport(context.getSource());
                     return 1;
                 }))
             );
@@ -120,17 +140,29 @@ public class AntiInvisClient implements ClientModInitializer {
                     togglePlayersOnlyAction(context.getSource());
                     return 1;
                 }))
+                .then(literal("badge").executes(context -> {
+                    toggleBadgeAction(context.getSource());
+                    return 1;
+                }))
                 .then(literal("status").executes(context -> {
                     sendStatusReport(context.getSource());
+                    return 1;
+                }))
+                .then(literal("help").executes(context -> {
+                    sendHelpReport(context.getSource());
                     return 1;
                 }))
             );
         });
 
-        LOGGER.info("[Anti-Invis] Başarıyla yüklendi. 'V' ve 'B' tuşları aktif, /antiinvis komutu devrede.");
+        LOGGER.info("[Anti-Invis] Başarıyla yüklendi. 'V' ve 'B' tuşları aktif, /antiinvis ve /ai komutları devrede.");
     }
 
     public static void toggleAction(Minecraft client) {
+        if (client == null) {
+            client = Minecraft.getInstance();
+        }
+
         boolean newState = !AntiInvisConfig.isEnabled();
         AntiInvisConfig.setEnabled(newState);
 
@@ -159,6 +191,10 @@ public class AntiInvisClient implements ClientModInitializer {
     }
 
     public static void cycleModeAction(Minecraft client) {
+        if (client == null) {
+            client = Minecraft.getInstance();
+        }
+
         VisionMode newMode = AntiInvisConfig.cycleMode();
 
         if (client.getSoundManager() != null) {
@@ -209,19 +245,49 @@ public class AntiInvisClient implements ClientModInitializer {
         }
     }
 
+    private static void toggleBadgeAction(FabricClientCommandSource source) {
+        boolean badge = AntiInvisConfig.toggleShowNameBadge();
+        String msg = "§6[Anti-Invis] §7[GÖRÜNMEZ] İsim Etiketi: " + (badge ? "§aAÇIK" : "§cKAPALI");
+        source.sendFeedback(Component.literal(msg));
+
+        Minecraft client = Minecraft.getInstance();
+        if (client.getSoundManager() != null) {
+            client.getSoundManager().play(
+                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, badge ? 1.2f : 0.8f)
+            );
+        }
+    }
+
     private static void sendStatusReport(FabricClientCommandSource source) {
         boolean enabled = AntiInvisConfig.isEnabled();
         VisionMode mode = AntiInvisConfig.getVisionMode();
         boolean wallhack = AntiInvisConfig.isSeeThroughWalls();
         boolean playersOnly = AntiInvisConfig.isAffectPlayersOnly();
+        boolean badge = AntiInvisConfig.isShowNameBadge();
 
         source.sendFeedback(Component.literal("§6===== [Anti-Invisibility Durum Raporu] ====="));
         source.sendFeedback(Component.literal("§7Durum: " + (enabled ? "§aAÇIK" : "§cKAPALI")));
         source.sendFeedback(Component.literal("§7Görünüm Modu: §e" + mode.getDisplayName()));
         source.sendFeedback(Component.literal("§7Duvardan Görme (Wallhack): " + (wallhack ? "§aAÇIK" : "§cKAPALI")));
         source.sendFeedback(Component.literal("§7Yalnızca Oyuncular: " + (playersOnly ? "§aAÇIK (Sadece Oyuncular)" : "§7KAPALI (Tüm Varlıklar)")));
+        source.sendFeedback(Component.literal("§7[GÖRÜNMEZ] İsim Etiketi: " + (badge ? "§aAÇIK" : "§cKAPALI")));
         source.sendFeedback(Component.literal("§7Kısayol Tuşları: §f[V] §7Aç/Kapa | §f[B] §7Mod Değiştir"));
-        source.sendFeedback(Component.literal("§7Komutlar: §f/ai §7| §f/ai mode §7| §f/ai wallhack §7| §f/ai players"));
+        source.sendFeedback(Component.literal("§7Komutlar: §f/ai §7| §f/ai mode §7| §f/ai wallhack §7| §f/ai players §7| §f/ai badge §7| §f/ai status §7| §f/ai help"));
+        source.sendFeedback(Component.literal("§6==========================================="));
+    }
+
+    private static void sendHelpReport(FabricClientCommandSource source) {
+        source.sendFeedback(Component.literal("§6===== [Anti-Invisibility Komut Yardımı] ====="));
+        source.sendFeedback(Component.literal("§f/ai §8(veya /ai toggle) §7- Modu açar / kapatır"));
+        source.sendFeedback(Component.literal("§f/ai mode §7- Görünüm modunu sırayla değiştirir"));
+        source.sendFeedback(Component.literal("§f/ai wallhack §7- Duvardan parlamayı (ESP) açar / kapatır"));
+        source.sendFeedback(Component.literal("§f/ai players §7- Yalnızca oyuncuları hedeflemeyi açar / kapatır"));
+        source.sendFeedback(Component.literal("§f/ai badge §7- [GÖRÜNMEZ] isim etiketini açar / kapatır"));
+        source.sendFeedback(Component.literal("§f/ai status §7- Mevcut durum ve yapılandırmayı listeler"));
+        source.sendFeedback(Component.literal("§f/ai help §7- Bu yardım kılavuzunu görüntüler"));
+        source.sendFeedback(Component.literal("§7Kısayol Tuşları:"));
+        source.sendFeedback(Component.literal("  §f[V] §7- Modu Aç / Kapat"));
+        source.sendFeedback(Component.literal("  §f[B] §7- Görünüm modları arasında geçiş yap"));
         source.sendFeedback(Component.literal("§6==========================================="));
     }
 

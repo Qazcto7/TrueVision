@@ -29,10 +29,23 @@ public abstract class EntityMixin {
         require = 0
     )
     private void antiinvis$onIsInvisibleTo(Player player, CallbackInfoReturnable<Boolean> cir) {
-        if (AntiInvisClient.isEnabled()) {
-            if (!AntiInvisConfig.isAffectPlayersOnly() || ((Object) this instanceof Player)) {
-                cir.setReturnValue(false);
-            }
+        if (!AntiInvisClient.isEnabled()) {
+            return;
+        }
+
+        // Tek oyunculuda yerel sunucu (integrated server) iş parçacığını ve diğer oyuncuları etkilememek için
+        // sadece yerel istemci oyuncusunun (LocalPlayer) bakış açısına müdahale et.
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc == null || mc.player == null) {
+            return;
+        }
+
+        if (player != null && player != mc.player) {
+            return;
+        }
+
+        if (!AntiInvisConfig.isAffectPlayersOnly() || ((Object) this instanceof Player)) {
+            cir.setReturnValue(false);
         }
     }
 }
