@@ -27,7 +27,7 @@ public class AntiInvisClient implements ClientModInitializer {
     public static final String MOD_ID = "antiinvis";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    private static final SystemToast.SystemToastId TOAST_ID = new SystemToast.SystemToastId();
+    private static final SystemToast.SystemToastId TOAST_ID = new SystemToast.SystemToastId(2500L);
 
     private static final KeyMapping.Category CATEGORY;
     static {
@@ -49,9 +49,13 @@ public class AntiInvisClient implements ClientModInitializer {
 
         AntiInvisConfig.load();
 
-        // Minecraft 26.3 tablosundaki 'V' (25) ve 'B' (5) değerlerini bağla
-        int keyV = InputConstants.getKey("key.keyboard.v").getValue();
-        int keyB = InputConstants.getKey("key.keyboard.b").getValue();
+        // Minecraft 26.3 tablosundaki 'V' (25) ve 'B' (5) değerlerini bağla (hata korumalı)
+        int keyV = 25;
+        int keyB = 5;
+        try {
+            keyV = InputConstants.getKey("key.keyboard.v").getValue();
+            keyB = InputConstants.getKey("key.keyboard.b").getValue();
+        } catch (Exception ignored) {}
 
         // 1. Aç/Kapa kısayol tuşu ('V' tuşu)
         toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
@@ -70,6 +74,13 @@ public class AntiInvisClient implements ClientModInitializer {
         // İstemci tick dinleyicisi: tuş tıklamalarını yakala
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client == null || client.player == null) {
+                return;
+            }
+
+            // Sohbet, envanter veya herhangi bir GUI ekranı açıkken basılan tuşları tüket ve modu tetikleme
+            if (client.gui != null && (client.gui.screen() != null || client.gui.overlay() != null)) {
+                while (toggleKey.consumeClick()) {}
+                while (modeKey.consumeClick()) {}
                 return;
             }
 

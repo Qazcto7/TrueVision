@@ -78,6 +78,9 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                     state.isInvisible = true;
                     state.isInvisibleToPlayer = false;
                     state.outlineColor = 0;
+                    if (AntiInvisConfig.isShowNameBadge()) {
+                        attachNameBadge(entity, state);
+                    }
                 }
                 case OPAQUE_GLOWING -> {
                     // Tam opak model, zırh ve tutulan eşyalar
