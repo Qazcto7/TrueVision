@@ -59,7 +59,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             return;
         }
 
-        if (AntiInvisConfig.isAffectPlayersOnly() && !(entity instanceof Player)) {
+        if (AntiInvisConfig.isAffectPlayersOnly() && !(entity instanceof Player) && !(entity instanceof net.minecraft.world.entity.Avatar)) {
             return;
         }
 
@@ -72,6 +72,12 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                 mode = VisionMode.OPAQUE_GLOWING;
             }
 
+            // Duvardan görme devredeyse eğilen (sneaking) oyuncuların isim etiketinin
+            // duvar arkasından gizlenmesini engellemek için isDiscrete bayrağını kaldır
+            if (AntiInvisConfig.isSeeThroughWalls()) {
+                state.isDiscrete = false;
+            }
+
             switch (mode) {
                 case TRANSLUCENT -> {
                     // Spectator tarzı yarı saydam (translucent / alpha ~0.5f) render
@@ -79,7 +85,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                     state.isInvisibleToPlayer = false;
                     state.outlineColor = 0;
                     if (AntiInvisConfig.isShowNameBadge()) {
-                        attachNameBadge(entity, state);
+                        attachNameBadge(entity, state, partialTick);
                     }
                 }
                 case OPAQUE_GLOWING -> {
@@ -106,7 +112,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                     }
 
                     if (AntiInvisConfig.isShowNameBadge()) {
-                        attachNameBadge(entity, state);
+                        attachNameBadge(entity, state, partialTick);
                     }
                 }
                 case OPAQUE_TAGGED -> {
@@ -114,7 +120,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                     state.isInvisible = false;
                     state.isInvisibleToPlayer = false;
                     state.outlineColor = 0;
-                    attachNameBadge(entity, state);
+                    attachNameBadge(entity, state, partialTick);
                 }
                 case OPAQUE_PURE -> {
                     // Tam opak normal render (belirteçsiz)
@@ -128,30 +134,44 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
 
     /**
      * İsim etiketini ekler.
+     * - Yerel istemci oyuncusu (F5 modunda) için kendi kafasının üstüne etiket eklemez.
      * - Oyuncular veya özel isimli varlıklar için fallback olarak displayName/name kullanır.
      * - İsimsiz rastgele mob'lar için etiket oluşturmaz.
      * - Çift eklemeleri (string duplicate) engeller ve nameTagAttachment null kontrolü yapar.
      */
-    private void attachNameBadge(T entity, S state) {
+    private void attachNameBadge(T entity, S state, float partialTick) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc != null && entity == mc.player) {
+            return;
+        }
+
         if (state.nameTag != null) {
             String currentName = state.nameTag.getString();
             if (!currentName.contains("[GÖRÜNMEZ]")) {
                 state.nameTag = Component.literal("§d[GÖRÜNMEZ] ").append(state.nameTag);
             }
-            if (state.nameTagAttachment == null) {
-                state.nameTagAttachment = new Vec3(0.0, entity.getBbHeight() + 0.5, 0.0);
-            }
-        } else if (entity instanceof Player || entity.hasCustomName()) {
+            ensureNameTagAttachment(entity, state, partialTick);
+        } else if (entity instanceof Player || entity instanceof net.minecraft.world.entity.Avatar || entity.hasCustomName()) {
             Component name = entity.getDisplayName();
             if (name == null) {
                 name = entity.getName();
             }
             if (name != null) {
                 state.nameTag = Component.literal("§d[GÖRÜNMEZ] ").append(name);
-                if (state.nameTagAttachment == null) {
-                    state.nameTagAttachment = new Vec3(0.0, entity.getBbHeight() + 0.5, 0.0);
-                }
+                ensureNameTagAttachment(entity, state, partialTick);
             }
+        }
+    }
+
+    private void ensureNameTagAttachment(T entity, S state, float partialTick) {
+        if (state.nameTagAttachment == null) {
+            Vec3 official = null;
+            try {
+                if (entity.getAttachments() != null) {
+                    official = entity.getAttachments().getNullable(net.minecraft.world.entity.EntityAttachment.NAME_TAG, 0, entity.getYRot(partialTick));
+                }
+            } catch (Exception ignored) {}
+            state.nameTagAttachment = (official != null) ? official : new Vec3(0.0, entity.getBbHeight() + 0.5, 0.0);
         }
     }
 }

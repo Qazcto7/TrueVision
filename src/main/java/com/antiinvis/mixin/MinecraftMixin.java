@@ -42,7 +42,7 @@ public abstract class MinecraftMixin {
             || (entity instanceof LivingEntity living && living.hasEffect(MobEffects.INVISIBILITY));
 
         if (isInvis) {
-            if (!AntiInvisConfig.isAffectPlayersOnly() || entity instanceof Player) {
+            if (!AntiInvisConfig.isAffectPlayersOnly() || entity instanceof Player || entity instanceof net.minecraft.world.entity.Avatar) {
                 // Duvardan parlama kontrolü (seeThroughWalls)
                 if (!AntiInvisConfig.isSeeThroughWalls()) {
                     Minecraft mc = (Minecraft) (Object) this;

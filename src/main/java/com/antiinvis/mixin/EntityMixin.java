@@ -44,7 +44,7 @@ public abstract class EntityMixin {
             return;
         }
 
-        if (!AntiInvisConfig.isAffectPlayersOnly() || ((Object) this instanceof Player)) {
+        if (!AntiInvisConfig.isAffectPlayersOnly() || ((Object) this instanceof Player) || ((Object) this instanceof net.minecraft.world.entity.Avatar)) {
             cir.setReturnValue(false);
         }
     }

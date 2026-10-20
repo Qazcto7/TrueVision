@@ -77,6 +77,10 @@ public class AntiInvisClient implements ClientModInitializer {
                 return;
             }
 
+            if (toggleKey == null || modeKey == null) {
+                return;
+            }
+
             // Sohbet, envanter veya herhangi bir GUI ekranı açıkken basılan tuşları tüket ve modu tetikleme
             if (client.gui != null && (client.gui.screen() != null || client.gui.overlay() != null)) {
                 while (toggleKey.consumeClick()) {}
@@ -84,11 +88,13 @@ public class AntiInvisClient implements ClientModInitializer {
                 return;
             }
 
-            while (toggleKey.consumeClick()) {
+            if (toggleKey.consumeClick()) {
+                while (toggleKey.consumeClick()) {}
                 toggleAction(client);
             }
 
-            while (modeKey.consumeClick()) {
+            if (modeKey.consumeClick()) {
+                while (modeKey.consumeClick()) {}
                 cycleModeAction(client);
             }
         });
@@ -236,7 +242,7 @@ public class AntiInvisClient implements ClientModInitializer {
         source.sendFeedback(Component.literal(msg));
 
         Minecraft client = Minecraft.getInstance();
-        if (client.getSoundManager() != null) {
+        if (client != null && client.getSoundManager() != null) {
             client.getSoundManager().play(
                 SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, stw ? 1.2f : 0.8f)
             );
@@ -249,7 +255,7 @@ public class AntiInvisClient implements ClientModInitializer {
         source.sendFeedback(Component.literal(msg));
 
         Minecraft client = Minecraft.getInstance();
-        if (client.getSoundManager() != null) {
+        if (client != null && client.getSoundManager() != null) {
             client.getSoundManager().play(
                 SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, po ? 1.2f : 0.8f)
             );
@@ -262,7 +268,7 @@ public class AntiInvisClient implements ClientModInitializer {
         source.sendFeedback(Component.literal(msg));
 
         Minecraft client = Minecraft.getInstance();
-        if (client.getSoundManager() != null) {
+        if (client != null && client.getSoundManager() != null) {
             client.getSoundManager().play(
                 SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, badge ? 1.2f : 0.8f)
             );
@@ -280,7 +286,7 @@ public class AntiInvisClient implements ClientModInitializer {
         source.sendFeedback(Component.literal("§7Durum: " + (enabled ? "§aAÇIK" : "§cKAPALI")));
         source.sendFeedback(Component.literal("§7Görünüm Modu: §e" + mode.getDisplayName()));
         source.sendFeedback(Component.literal("§7Duvardan Görme (Wallhack): " + (wallhack ? "§aAÇIK" : "§cKAPALI")));
-        source.sendFeedback(Component.literal("§7Yalnızca Oyuncular: " + (playersOnly ? "§aAÇIK (Sadece Oyuncular)" : "§7KAPALI (Tüm Varlıklar)")));
+        source.sendFeedback(Component.literal("§7Yalnızca Oyuncular: " + (playersOnly ? "§aAÇIK (Sadece Oyuncular)" : "§eKAPALI (Tüm Varlıklar)")));
         source.sendFeedback(Component.literal("§7[GÖRÜNMEZ] İsim Etiketi: " + (badge ? "§aAÇIK" : "§cKAPALI")));
         source.sendFeedback(Component.literal("§7Kısayol Tuşları: §f[V] §7Aç/Kapa | §f[B] §7Mod Değiştir"));
         source.sendFeedback(Component.literal("§7Komutlar: §f/ai §7| §f/ai mode §7| §f/ai wallhack §7| §f/ai players §7| §f/ai badge §7| §f/ai status §7| §f/ai help"));
