@@ -1,13 +1,12 @@
 package com.antiinvis.mixin;
 
-import com.antiinvis.AntiInvisClient;
 import com.antiinvis.config.AntiInvisConfig;
 import com.antiinvis.config.VisionMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Avatar;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -33,7 +32,7 @@ public abstract class MinecraftMixin {
         require = 0
     )
     private void antiinvis$onShouldEntityAppearGlowing(Entity entity, CallbackInfoReturnable<Boolean> cir) {
-        if (entity == null || !AntiInvisClient.isEnabled() 
+        if (entity == null || !AntiInvisConfig.isEnabled() 
                 || AntiInvisConfig.getVisionMode() != VisionMode.OPAQUE_GLOWING) {
             return;
         }
@@ -42,7 +41,7 @@ public abstract class MinecraftMixin {
             || (entity instanceof LivingEntity living && living.hasEffect(MobEffects.INVISIBILITY));
 
         if (isInvis) {
-            if (!AntiInvisConfig.isAffectPlayersOnly() || entity instanceof Player || entity instanceof net.minecraft.world.entity.Avatar) {
+            if (!AntiInvisConfig.isAffectPlayersOnly() || entity instanceof Avatar) {
                 // Duvardan parlama kontrolü (seeThroughWalls)
                 if (!AntiInvisConfig.isSeeThroughWalls()) {
                     Minecraft mc = (Minecraft) (Object) this;

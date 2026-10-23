@@ -28,10 +28,6 @@ public class AntiInvisConfig {
     private boolean affectPlayersOnly = false;
     private boolean showNameBadge = true;
 
-    public static AntiInvisConfig getInstance() {
-        return INSTANCE;
-    }
-
     public static boolean isEnabled() {
         return INSTANCE.enabled;
     }

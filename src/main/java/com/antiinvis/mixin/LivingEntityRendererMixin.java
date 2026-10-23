@@ -1,6 +1,5 @@
 package com.antiinvis.mixin;
 
-import com.antiinvis.AntiInvisClient;
 import com.antiinvis.config.AntiInvisConfig;
 import com.antiinvis.config.VisionMode;
 import net.minecraft.client.Minecraft;
@@ -9,8 +8,9 @@ import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Avatar;
+import net.minecraft.world.entity.EntityAttachment;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -51,7 +51,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         require = 0
     )
     private void antiinvis$onExtractRenderState(T entity, S state, float partialTick, CallbackInfo ci) {
-        if (!AntiInvisClient.isEnabled()) {
+        if (!AntiInvisConfig.isEnabled()) {
             return;
         }
 
@@ -59,7 +59,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             return;
         }
 
-        if (AntiInvisConfig.isAffectPlayersOnly() && !(entity instanceof Player) && !(entity instanceof net.minecraft.world.entity.Avatar)) {
+        if (AntiInvisConfig.isAffectPlayersOnly() && !(entity instanceof Avatar)) {
             return;
         }
 
@@ -150,16 +150,18 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             if (!currentName.contains("[GÖRÜNMEZ]")) {
                 state.nameTag = Component.literal("§d[GÖRÜNMEZ] ").append(state.nameTag);
             }
-            ensureNameTagAttachment(entity, state, partialTick);
-        } else if (entity instanceof Player || entity instanceof net.minecraft.world.entity.Avatar || entity.hasCustomName()) {
+        } else if (entity instanceof Avatar || entity.hasCustomName()) {
             Component name = entity.getDisplayName();
             if (name == null) {
                 name = entity.getName();
             }
             if (name != null) {
                 state.nameTag = Component.literal("§d[GÖRÜNMEZ] ").append(name);
-                ensureNameTagAttachment(entity, state, partialTick);
             }
+        }
+
+        if (state.nameTag != null) {
+            ensureNameTagAttachment(entity, state, partialTick);
         }
     }
 
@@ -168,7 +170,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             Vec3 official = null;
             try {
                 if (entity.getAttachments() != null) {
-                    official = entity.getAttachments().getNullable(net.minecraft.world.entity.EntityAttachment.NAME_TAG, 0, entity.getYRot(partialTick));
+                    official = entity.getAttachments().getNullable(EntityAttachment.NAME_TAG, 0, entity.getYRot(partialTick));
                 }
             } catch (Exception ignored) {}
             state.nameTagAttachment = (official != null) ? official : new Vec3(0.0, entity.getBbHeight() + 0.5, 0.0);

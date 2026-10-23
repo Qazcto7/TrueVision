@@ -3,6 +3,7 @@ package com.antiinvis;
 import com.antiinvis.config.AntiInvisConfig;
 import com.antiinvis.config.VisionMode;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
@@ -101,78 +102,47 @@ public class AntiInvisClient implements ClientModInitializer {
 
         // Sohbet komutları (/antiinvis ve /ai)
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            dispatcher.register(literal("antiinvis")
-                .executes(context -> {
-                    toggleAction(Minecraft.getInstance());
-                    return 1;
-                })
-                .then(literal("toggle").executes(context -> {
-                    toggleAction(Minecraft.getInstance());
-                    return 1;
-                }))
-                .then(literal("mode").executes(context -> {
-                    cycleModeAction(Minecraft.getInstance());
-                    return 1;
-                }))
-                .then(literal("wallhack").executes(context -> {
-                    toggleWallhackAction(context.getSource());
-                    return 1;
-                }))
-                .then(literal("players").executes(context -> {
-                    togglePlayersOnlyAction(context.getSource());
-                    return 1;
-                }))
-                .then(literal("badge").executes(context -> {
-                    toggleBadgeAction(context.getSource());
-                    return 1;
-                }))
-                .then(literal("status").executes(context -> {
-                    sendStatusReport(context.getSource());
-                    return 1;
-                }))
-                .then(literal("help").executes(context -> {
-                    sendHelpReport(context.getSource());
-                    return 1;
-                }))
-            );
-
-            dispatcher.register(literal("ai")
-                .executes(context -> {
-                    toggleAction(Minecraft.getInstance());
-                    return 1;
-                })
-                .then(literal("toggle").executes(context -> {
-                    toggleAction(Minecraft.getInstance());
-                    return 1;
-                }))
-                .then(literal("mode").executes(context -> {
-                    cycleModeAction(Minecraft.getInstance());
-                    return 1;
-                }))
-                .then(literal("wallhack").executes(context -> {
-                    toggleWallhackAction(context.getSource());
-                    return 1;
-                }))
-                .then(literal("players").executes(context -> {
-                    togglePlayersOnlyAction(context.getSource());
-                    return 1;
-                }))
-                .then(literal("badge").executes(context -> {
-                    toggleBadgeAction(context.getSource());
-                    return 1;
-                }))
-                .then(literal("status").executes(context -> {
-                    sendStatusReport(context.getSource());
-                    return 1;
-                }))
-                .then(literal("help").executes(context -> {
-                    sendHelpReport(context.getSource());
-                    return 1;
-                }))
-            );
+            dispatcher.register(buildRootCommand("ai"));
+            dispatcher.register(buildRootCommand("antiinvis"));
         });
 
         LOGGER.info("[Anti-Invis] Başarıyla yüklendi. 'V' ve 'B' tuşları aktif, /antiinvis ve /ai komutları devrede.");
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> buildRootCommand(String name) {
+        return literal(name)
+            .executes(context -> {
+                toggleAction(Minecraft.getInstance());
+                return 1;
+            })
+            .then(literal("toggle").executes(context -> {
+                toggleAction(Minecraft.getInstance());
+                return 1;
+            }))
+            .then(literal("mode").executes(context -> {
+                cycleModeAction(Minecraft.getInstance());
+                return 1;
+            }))
+            .then(literal("wallhack").executes(context -> {
+                toggleWallhackAction(context.getSource());
+                return 1;
+            }))
+            .then(literal("players").executes(context -> {
+                togglePlayersOnlyAction(context.getSource());
+                return 1;
+            }))
+            .then(literal("badge").executes(context -> {
+                toggleBadgeAction(context.getSource());
+                return 1;
+            }))
+            .then(literal("status").executes(context -> {
+                sendStatusReport(context.getSource());
+                return 1;
+            }))
+            .then(literal("help").executes(context -> {
+                sendHelpReport(context.getSource());
+                return 1;
+            }));
     }
 
     public static void toggleAction(Minecraft client) {
@@ -284,7 +254,7 @@ public class AntiInvisClient implements ClientModInitializer {
 
         source.sendFeedback(Component.literal("§6===== [Anti-Invisibility Durum Raporu] ====="));
         source.sendFeedback(Component.literal("§7Durum: " + (enabled ? "§aAÇIK" : "§cKAPALI")));
-        source.sendFeedback(Component.literal("§7Görünüm Modu: §e" + mode.getDisplayName()));
+        source.sendFeedback(Component.literal("§7Görünüm Modu: §e" + mode.getDisplayName() + " §8(" + mode.getDescription() + ")"));
         source.sendFeedback(Component.literal("§7Duvardan Görme (Wallhack): " + (wallhack ? "§aAÇIK" : "§cKAPALI")));
         source.sendFeedback(Component.literal("§7Yalnızca Oyuncular: " + (playersOnly ? "§aAÇIK (Sadece Oyuncular)" : "§eKAPALI (Tüm Varlıklar)")));
         source.sendFeedback(Component.literal("§7[GÖRÜNMEZ] İsim Etiketi: " + (badge ? "§aAÇIK" : "§cKAPALI")));
@@ -302,17 +272,13 @@ public class AntiInvisClient implements ClientModInitializer {
         source.sendFeedback(Component.literal("§f/ai badge §7- [GÖRÜNMEZ] isim etiketini açar / kapatır"));
         source.sendFeedback(Component.literal("§f/ai status §7- Mevcut durum ve yapılandırmayı listeler"));
         source.sendFeedback(Component.literal("§f/ai help §7- Bu yardım kılavuzunu görüntüler"));
+        source.sendFeedback(Component.literal("§7Kullanılabilir Görünüm Modları:"));
+        for (VisionMode mode : VisionMode.values()) {
+            source.sendFeedback(Component.literal("  " + mode.getDisplayName() + " §8- §7" + mode.getDescription()));
+        }
         source.sendFeedback(Component.literal("§7Kısayol Tuşları:"));
         source.sendFeedback(Component.literal("  §f[V] §7- Modu Aç / Kapat"));
         source.sendFeedback(Component.literal("  §f[B] §7- Görünüm modları arasında geçiş yap"));
         source.sendFeedback(Component.literal("§6==========================================="));
-    }
-
-    public static boolean isEnabled() {
-        return AntiInvisConfig.isEnabled();
-    }
-
-    public static void toggle() {
-        AntiInvisConfig.setEnabled(!AntiInvisConfig.isEnabled());
     }
 }

@@ -1,7 +1,8 @@
 package com.antiinvis.mixin;
 
-import com.antiinvis.AntiInvisClient;
 import com.antiinvis.config.AntiInvisConfig;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.Avatar;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
@@ -29,13 +30,13 @@ public abstract class EntityMixin {
         require = 0
     )
     private void antiinvis$onIsInvisibleTo(Player player, CallbackInfoReturnable<Boolean> cir) {
-        if (!AntiInvisClient.isEnabled()) {
+        if (!AntiInvisConfig.isEnabled()) {
             return;
         }
 
         // Tek oyunculuda yerel sunucu (integrated server) iş parçacığını ve diğer oyuncuları etkilememek için
         // sadece yerel istemci oyuncusunun (LocalPlayer) bakış açısına müdahale et.
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.player == null) {
             return;
         }
@@ -44,7 +45,7 @@ public abstract class EntityMixin {
             return;
         }
 
-        if (!AntiInvisConfig.isAffectPlayersOnly() || ((Object) this instanceof Player) || ((Object) this instanceof net.minecraft.world.entity.Avatar)) {
+        if (!AntiInvisConfig.isAffectPlayersOnly() || ((Object) this instanceof Avatar)) {
             cir.setReturnValue(false);
         }
     }
