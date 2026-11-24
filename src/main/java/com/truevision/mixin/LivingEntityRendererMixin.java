@@ -1,6 +1,6 @@
-package com.antiinvis.mixin;
+package com.truevision.mixin;
 
-import com.antiinvis.VisionHelper;
+import com.truevision.VisionHelper;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.world.entity.LivingEntity;
@@ -28,7 +28,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         at = @At("TAIL"),
         require = 0
     )
-    private void antiinvis$onExtractRenderState(T entity, S state, float partialTick, CallbackInfo ci) {
+    private void truevision$onExtractRenderState(T entity, S state, float partialTick, CallbackInfo ci) {
         VisionHelper.applyRenderState(entity, state, partialTick);
     }
 }

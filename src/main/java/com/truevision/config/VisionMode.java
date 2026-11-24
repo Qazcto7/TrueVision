@@ -1,4 +1,4 @@
-package com.antiinvis.config;
+package com.truevision.config;
 
 /**
  * Visual rendering modes for revealed invisible entities.

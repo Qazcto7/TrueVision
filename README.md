@@ -1,6 +1,6 @@
-# TrueVision (Anti-Invisibility) — Minecraft 26.3
+# TrueVision — Minecraft 26.3
 
-A lightweight, **100% client-side** Fabric mod for **Minecraft 26.3 (Java 25+, Mojang Mappings)** that reveals invisible players and mobs using Minecraft's modern Render State pipeline.
+A lightweight, **100% client-side** Fabric mod for **Minecraft 26.3 (Java 25+, Mojang Mappings)** that reveals invisible players and mobs using Minecraft's native Render State pipeline.
 
 Works out of the box on **all multiplayer servers** (Vanilla, Paper, Spigot, Purpur, Folia, BungeeCord, Velocity, Realms, Fabric/NeoForge, and ViaFabricPlus multi-version servers) as well as **all singleplayer and LAN worlds** — sends **zero network packets** and requires **no server-side installation**.
 
@@ -27,14 +27,14 @@ Works out of the box on **all multiplayer servers** (Vanilla, Paper, Spigot, Pur
 4. **Controls, Commands & Feedback**:
    - **`V` Key**: Toggle TrueVision ON / OFF (rebindable under *Controls → TrueVision*).
    - **`B` Key**: Cycle between vision modes.
-   - **Client-Only Commands (`/ai` or `/antiinvis`)**:
-     - `/ai` or `/ai toggle` — Toggle ON / OFF
-     - `/ai mode [glowing|translucent|tagged|pure]` — Cycle or directly select a vision mode
-     - `/ai walls` (or `/ai throughwalls`) — Toggle outlines and sneaking nametags through walls
-     - `/ai players` — Toggle Players Only vs All Living Entities (Players & Mobs)
-     - `/ai badge` — Toggle the `[INVIS]` nametag badge
-     - `/ai status` — View current settings and active keybinds
-     - `/ai help` — Show command and vision mode guide
+   - **Client-Only Commands (`/tv` or `/truevision`)**:
+     - `/tv` or `/tv toggle` — Toggle ON / OFF
+     - `/tv mode [glowing|translucent|tagged|pure]` — Cycle or directly select a vision mode
+     - `/tv walls` (or `/tv throughwalls`) — Toggle outlines and sneaking nametags through walls
+     - `/tv players` — Toggle Players Only vs All Living Entities (Players & Mobs)
+     - `/tv badge` — Toggle the `[INVIS]` nametag badge
+     - `/tv status` — View current settings and active keybinds
+     - `/tv help` — Show command and vision mode guide
    - Plays a subtle UI click sound with ActionBar and Toast notifications.
 
 ---
@@ -43,7 +43,7 @@ Works out of the box on **all multiplayer servers** (Vanilla, Paper, Spigot, Pur
 
 Settings are automatically saved atomically to:
 ```text
-.minecraft/config/antiinvis.json
+.minecraft/config/truevision.json
 ```
 
 ---
@@ -54,4 +54,4 @@ Settings are automatically saved atomically to:
 ./derle.sh
 ```
 
-Compiles all Java sources with `--release 25 -encoding UTF-8`, packages `build/libs/AntiInvis-26.3-1.0.0.jar`, and installs it into `$SKLAUNCHER_DIR/instances/fabric-latest/mods/` when present.
+Compiles all Java sources with `--release 25 -encoding UTF-8`, packages `build/libs/TrueVision-26.3-1.0.0.jar`, and installs it into `$SKLAUNCHER_DIR/instances/fabric-latest/mods/` when present.

@@ -1,4 +1,4 @@
-package com.antiinvis.config;
+package com.truevision.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -15,14 +15,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 /**
- * Manages client-side configuration and persists it atomically to .minecraft/config/antiinvis.json.
+ * Manages client-side configuration and persists it atomically to .minecraft/config/truevision.json.
  */
-public class AntiInvisConfig {
-    private static final Logger LOGGER = LoggerFactory.getLogger("antiinvis");
+public class TrueVisionConfig {
+    private static final Logger LOGGER = LoggerFactory.getLogger("truevision");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("antiinvis.json");
+    private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("truevision.json");
 
-    private static volatile AntiInvisConfig INSTANCE = new AntiInvisConfig();
+    private static volatile TrueVisionConfig INSTANCE = new TrueVisionConfig();
 
     // Configuration fields (volatile for cross-thread visibility)
     private volatile boolean enabled = true;
@@ -101,7 +101,7 @@ public class AntiInvisConfig {
         }
 
         try (Reader reader = Files.newBufferedReader(CONFIG_PATH, StandardCharsets.UTF_8)) {
-            AntiInvisConfig config = GSON.fromJson(reader, AntiInvisConfig.class);
+            TrueVisionConfig config = GSON.fromJson(reader, TrueVisionConfig.class);
             if (config == null) {
                 LOGGER.warn("[TrueVision] Config file is empty or invalid; keeping defaults.");
                 return;

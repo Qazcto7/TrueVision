@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "=========================================================="
-echo "  TrueVision (Anti-Invisibility) - Minecraft 26.3"
+echo "  TrueVision - Minecraft 26.3"
 echo "  Standalone Compiler (Java 25+ / Mojang Mappings)"
 echo "=========================================================="
 
@@ -92,19 +92,19 @@ if [ -f "LICENSE" ]; then
     cp "LICENSE" "$TMP_BUILD/LICENSE"
 fi
 
-OUTPUT_JAR="build/libs/AntiInvis-26.3-1.0.0.jar"
+OUTPUT_JAR="build/libs/TrueVision-26.3-1.0.0.jar"
 echo "[3/3] Packaging JAR: $OUTPUT_JAR"
 "$JAR_BIN" --create --file "$OUTPUT_JAR" -C "$TMP_BUILD" .
 
 # 3. Install automatically into SKLauncher fabric-latest mods directory
 DEST_DIR="$SKLAUNCHER_DIR/instances/fabric-latest/mods"
 if [ -d "$DEST_DIR" ]; then
-    rm -f "$DEST_DIR"/AntiInvis-*.jar
-    cp "$OUTPUT_JAR" "$DEST_DIR/AntiInvis-26.3-1.0.0.jar"
+    rm -f "$DEST_DIR"/AntiInvis-*.jar "$DEST_DIR"/TrueVision-*.jar
+    cp "$OUTPUT_JAR" "$DEST_DIR/TrueVision-26.3-1.0.0.jar"
     echo "  -> Installed into SKLauncher 'fabric-latest' mods folder!"
 fi
 
 echo "=========================================================="
-echo "  [SUCCESS] Built AntiInvis-26.3-1.0.0.jar!"
+echo "  [SUCCESS] Built TrueVision-26.3-1.0.0.jar!"
 echo "  Location: $OUTPUT_JAR"
 echo "=========================================================="

@@ -1,8 +1,8 @@
-package com.antiinvis.mixin;
+package com.truevision.mixin;
 
-import com.antiinvis.VisionHelper;
-import com.antiinvis.config.AntiInvisConfig;
-import com.antiinvis.config.VisionMode;
+import com.truevision.VisionHelper;
+import com.truevision.config.TrueVisionConfig;
+import com.truevision.config.VisionMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,9 +26,9 @@ public abstract class MinecraftMixin {
         cancellable = true,
         require = 0
     )
-    private void antiinvis$onShouldEntityAppearGlowing(Entity entity, CallbackInfoReturnable<Boolean> cir) {
-        if (entity == null || !AntiInvisConfig.isEnabled()
-                || AntiInvisConfig.getVisionMode() != VisionMode.OPAQUE_GLOWING) {
+    private void truevision$onShouldEntityAppearGlowing(Entity entity, CallbackInfoReturnable<Boolean> cir) {
+        if (entity == null || !TrueVisionConfig.isEnabled()
+                || TrueVisionConfig.getVisionMode() != VisionMode.OPAQUE_GLOWING) {
             return;
         }
 

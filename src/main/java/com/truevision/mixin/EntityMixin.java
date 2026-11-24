@@ -1,7 +1,7 @@
-package com.antiinvis.mixin;
+package com.truevision.mixin;
 
-import com.antiinvis.VisionHelper;
-import com.antiinvis.config.AntiInvisConfig;
+import com.truevision.VisionHelper;
+import com.truevision.config.TrueVisionConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -29,8 +29,8 @@ public abstract class EntityMixin {
         cancellable = true,
         require = 0
     )
-    private void antiinvis$onIsInvisibleTo(Player player, CallbackInfoReturnable<Boolean> cir) {
-        if (!AntiInvisConfig.isEnabled()) {
+    private void truevision$onIsInvisibleTo(Player player, CallbackInfoReturnable<Boolean> cir) {
+        if (!TrueVisionConfig.isEnabled()) {
             return;
         }
 

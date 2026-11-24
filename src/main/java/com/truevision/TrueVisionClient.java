@@ -1,7 +1,7 @@
-package com.antiinvis;
+package com.truevision;
 
-import com.antiinvis.config.AntiInvisConfig;
-import com.antiinvis.config.VisionMode;
+import com.truevision.config.TrueVisionConfig;
+import com.truevision.config.VisionMode;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.api.ClientModInitializer;
@@ -21,12 +21,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Client-side entrypoint for TrueVision (Anti-Invisibility).
- * Manages keybindings ('V' and 'B'), client-only /antiinvis and /ai commands, and HUD notifications.
+ * Client-side entrypoint for TrueVision.
+ * Manages keybindings ('V' and 'B'), client-only /truevision and /tv commands, and HUD notifications.
  * Sends zero network packets so it works seamlessly on all multiplayer servers and singleplayer worlds.
  */
-public class AntiInvisClient implements ClientModInitializer {
-    public static final String MOD_ID = "antiinvis";
+public class TrueVisionClient implements ClientModInitializer {
+    public static final String MOD_ID = "truevision";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     private static final SystemToast.SystemToastId TOAST_ID = new SystemToast.SystemToastId(2500L);
@@ -38,7 +38,7 @@ public class AntiInvisClient implements ClientModInitializer {
     public void onInitializeClient() {
         LOGGER.info("[TrueVision] Initializing client mod...");
 
-        AntiInvisConfig.load();
+        TrueVisionConfig.load();
 
         KeyMapping.Category category;
         try {
@@ -50,14 +50,14 @@ public class AntiInvisClient implements ClientModInitializer {
 
         // 1. Toggle keybind (default: 'V')
         toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-            "key.antiinvis.toggle",
+            "key.truevision.toggle",
             InputConstants.KEY_V,
             category
         ));
 
         // 2. Cycle vision mode keybind (default: 'B')
         modeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-            "key.antiinvis.cycle_mode",
+            "key.truevision.cycle_mode",
             InputConstants.KEY_B,
             category
         ));
@@ -86,13 +86,13 @@ public class AntiInvisClient implements ClientModInitializer {
             }
         });
 
-        // Client-side chat commands (/antiinvis and /ai) — handled locally, never sent to servers
+        // Client-side chat commands (/truevision and /tv) — handled locally, never sent to servers
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            dispatcher.register(buildRootCommand("ai"));
-            dispatcher.register(buildRootCommand("antiinvis"));
+            dispatcher.register(buildRootCommand("tv"));
+            dispatcher.register(buildRootCommand("truevision"));
         });
 
-        LOGGER.info("[TrueVision] Loaded successfully. Keybinds [V]/[B] and client commands /antiinvis & /ai are active.");
+        LOGGER.info("[TrueVision] Loaded successfully. Keybinds [V]/[B] and client commands /truevision & /tv are active.");
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> buildRootCommand(String name) {
@@ -150,7 +150,7 @@ public class AntiInvisClient implements ClientModInitializer {
             client = Minecraft.getInstance();
         }
 
-        boolean newState = AntiInvisConfig.toggleEnabled();
+        boolean newState = TrueVisionConfig.toggleEnabled();
         if (client == null) {
             return;
         }
@@ -158,7 +158,7 @@ public class AntiInvisClient implements ClientModInitializer {
         playClickSound(client, newState ? 1.2f : 0.8f);
 
         String status = newState ? "§aON" : "§cOFF";
-        String modeName = AntiInvisConfig.getVisionMode().getDisplayName();
+        String modeName = TrueVisionConfig.getVisionMode().getDisplayName();
         String message = "§6[TrueVision] " + status + (newState ? " §7(Mode: " + modeName + "§7)" : "");
 
         if (client.player != null) {
@@ -176,11 +176,11 @@ public class AntiInvisClient implements ClientModInitializer {
     }
 
     public static void cycleModeAction(Minecraft client) {
-        notifyModeChange(client, AntiInvisConfig.cycleMode());
+        notifyModeChange(client, TrueVisionConfig.cycleMode());
     }
 
     public static void setModeAction(Minecraft client, VisionMode mode) {
-        notifyModeChange(client, AntiInvisConfig.setVisionMode(mode));
+        notifyModeChange(client, TrueVisionConfig.setVisionMode(mode));
     }
 
     private static void notifyModeChange(Minecraft client, VisionMode newMode) {
@@ -210,21 +210,21 @@ public class AntiInvisClient implements ClientModInitializer {
     }
 
     private static void toggleThroughWallsAction(FabricClientCommandSource source) {
-        boolean stw = AntiInvisConfig.toggleSeeThroughWalls();
+        boolean stw = TrueVisionConfig.toggleSeeThroughWalls();
         String msg = "§6[TrueVision] §7See Through Walls: " + (stw ? "§aON" : "§cOFF §7(Line of Sight Only)");
         source.sendFeedback(Component.literal(msg));
         playClickSound(Minecraft.getInstance(), stw ? 1.2f : 0.8f);
     }
 
     private static void togglePlayersOnlyAction(FabricClientCommandSource source) {
-        boolean po = AntiInvisConfig.toggleAffectPlayersOnly();
+        boolean po = TrueVisionConfig.toggleAffectPlayersOnly();
         String msg = "§6[TrueVision] §7Target Filter: " + (po ? "§aPlayers Only" : "§eAll Living Entities (Players & Mobs)");
         source.sendFeedback(Component.literal(msg));
         playClickSound(Minecraft.getInstance(), po ? 1.2f : 0.8f);
     }
 
     private static void toggleBadgeAction(FabricClientCommandSource source) {
-        boolean badge = AntiInvisConfig.toggleShowNameBadge();
+        boolean badge = TrueVisionConfig.toggleShowNameBadge();
         String msg = "§6[TrueVision] §7[INVIS] Nametag Badge: " + (badge ? "§aON" : "§cOFF");
         source.sendFeedback(Component.literal(msg));
         playClickSound(Minecraft.getInstance(), badge ? 1.2f : 0.8f);
@@ -247,11 +247,11 @@ public class AntiInvisClient implements ClientModInitializer {
     }
 
     private static void sendStatusReport(FabricClientCommandSource source) {
-        boolean enabled = AntiInvisConfig.isEnabled();
-        VisionMode mode = AntiInvisConfig.getVisionMode();
-        boolean throughWalls = AntiInvisConfig.isSeeThroughWalls();
-        boolean playersOnly = AntiInvisConfig.isAffectPlayersOnly();
-        boolean badge = AntiInvisConfig.isShowNameBadge();
+        boolean enabled = TrueVisionConfig.isEnabled();
+        VisionMode mode = TrueVisionConfig.getVisionMode();
+        boolean throughWalls = TrueVisionConfig.isSeeThroughWalls();
+        boolean playersOnly = TrueVisionConfig.isAffectPlayersOnly();
+        boolean badge = TrueVisionConfig.isShowNameBadge();
         String toggleLabel = getKeyDisplayName(toggleKey, "V");
         String modeLabel = getKeyDisplayName(modeKey, "B");
 
@@ -262,7 +262,7 @@ public class AntiInvisClient implements ClientModInitializer {
         source.sendFeedback(Component.literal("§7Target Filter: " + (playersOnly ? "§aPlayers Only" : "§eAll Living Entities (Players & Mobs)")));
         source.sendFeedback(Component.literal("§7[INVIS] Nametag Badge: " + (badge ? "§aON" : "§cOFF")));
         source.sendFeedback(Component.literal("§7Keybinds: §f[" + toggleLabel + "] §7Toggle | §f[" + modeLabel + "] §7Cycle Mode"));
-        source.sendFeedback(Component.literal("§7Commands: §f/ai §7| §f/ai mode §7| §f/ai walls §7| §f/ai players §7| §f/ai badge §7| §f/ai status §7| §f/ai help"));
+        source.sendFeedback(Component.literal("§7Commands: §f/tv §7| §f/tv mode §7| §f/tv walls §7| §f/tv players §7| §f/tv badge §7| §f/tv status §7| §f/tv help"));
         source.sendFeedback(Component.literal("§6==============================="));
     }
 
@@ -271,13 +271,13 @@ public class AntiInvisClient implements ClientModInitializer {
         String modeLabel = getKeyDisplayName(modeKey, "B");
 
         source.sendFeedback(Component.literal("§6===== [TrueVision Command Help] ====="));
-        source.sendFeedback(Component.literal("§f/ai §8(or /antiinvis, /ai toggle) §7- Toggle TrueVision ON / OFF"));
-        source.sendFeedback(Component.literal("§f/ai mode §8[glowing|translucent|tagged|pure] §7- Cycle or set vision mode"));
-        source.sendFeedback(Component.literal("§f/ai walls §8(or /ai throughwalls) §7- Toggle outlines & sneaking tags through walls"));
-        source.sendFeedback(Component.literal("§f/ai players §7- Toggle Players Only vs Players & Mobs"));
-        source.sendFeedback(Component.literal("§f/ai badge §7- Toggle the [INVIS] nametag badge"));
-        source.sendFeedback(Component.literal("§f/ai status §7- Show current configuration and status"));
-        source.sendFeedback(Component.literal("§f/ai help §7- Show this help guide"));
+        source.sendFeedback(Component.literal("§f/tv §8(or /truevision, /tv toggle) §7- Toggle TrueVision ON / OFF"));
+        source.sendFeedback(Component.literal("§f/tv mode §8[glowing|translucent|tagged|pure] §7- Cycle or set vision mode"));
+        source.sendFeedback(Component.literal("§f/tv walls §8(or /tv throughwalls) §7- Toggle outlines & sneaking tags through walls"));
+        source.sendFeedback(Component.literal("§f/tv players §7- Toggle Players Only vs Players & Mobs"));
+        source.sendFeedback(Component.literal("§f/tv badge §7- Toggle the [INVIS] nametag badge"));
+        source.sendFeedback(Component.literal("§f/tv status §7- Show current configuration and status"));
+        source.sendFeedback(Component.literal("§f/tv help §7- Show this help guide"));
         source.sendFeedback(Component.literal("§7Available Vision Modes:"));
         for (VisionMode mode : VisionMode.values()) {
             source.sendFeedback(Component.literal("  §f" + mode.getCommandKey() + " §8(" + mode.getDisplayName() + "§8) §7- " + mode.getDescription()));

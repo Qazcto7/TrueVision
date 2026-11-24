@@ -1,7 +1,7 @@
-package com.antiinvis;
+package com.truevision;
 
-import com.antiinvis.config.AntiInvisConfig;
-import com.antiinvis.config.VisionMode;
+import com.truevision.config.TrueVisionConfig;
+import com.truevision.config.VisionMode;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
@@ -40,7 +40,7 @@ public final class VisionHelper {
         if (!(entity instanceof LivingEntity) || entity instanceof ArmorStand) {
             return false;
         }
-        return !AntiInvisConfig.isAffectPlayersOnly() || entity instanceof Avatar;
+        return !TrueVisionConfig.isAffectPlayersOnly() || entity instanceof Avatar;
     }
 
     /**
@@ -58,7 +58,7 @@ public final class VisionHelper {
      * while solid walls suppress glowing outlines.
      */
     public static boolean canSeeEntity(Minecraft mc, Entity entity) {
-        if (AntiInvisConfig.isSeeThroughWalls()) {
+        if (TrueVisionConfig.isSeeThroughWalls()) {
             return true;
         }
         if (mc == null) {
@@ -86,7 +86,7 @@ public final class VisionHelper {
      * Does not touch vertex buffers or draw calls, preserving compatibility with Sodium, Iris, and ImmediatelyFast.
      */
     public static void applyRenderState(LivingEntity entity, LivingEntityRenderState state, float partialTick) {
-        if (!AntiInvisConfig.isEnabled() || entity == null || state == null) {
+        if (!TrueVisionConfig.isEnabled() || entity == null || state == null) {
             return;
         }
 
@@ -99,10 +99,10 @@ public final class VisionHelper {
             return;
         }
 
-        VisionMode mode = AntiInvisConfig.getVisionMode();
+        VisionMode mode = TrueVisionConfig.getVisionMode();
 
         // Allow sneaking invisible players' nametags to remain visible through blocks when seeThroughWalls is enabled
-        if (AntiInvisConfig.isSeeThroughWalls()) {
+        if (TrueVisionConfig.isSeeThroughWalls()) {
             state.isDiscrete = false;
         }
 
@@ -111,7 +111,7 @@ public final class VisionHelper {
                 // Spectator-style translucent rendering; preserves any vanilla glowing (e.g. Spectral Arrows)
                 state.isInvisible = true;
                 state.isInvisibleToPlayer = false;
-                if (AntiInvisConfig.isShowNameBadge()) {
+                if (TrueVisionConfig.isShowNameBadge()) {
                     attachNameBadge(entity, state, partialTick);
                 }
             }
@@ -123,12 +123,12 @@ public final class VisionHelper {
                 // MinecraftMixin normally populates state.outlineColor via EntityRenderer.extractRenderState.
                 // Fallback only if outlineColor is still 0 (e.g., state.isInvisible was set externally).
                 if (state.outlineColor == 0
-                        && (AntiInvisConfig.isSeeThroughWalls()
+                        && (TrueVisionConfig.isSeeThroughWalls()
                             || (!entityWasInvisible && canSeeEntity(Minecraft.getInstance(), entity)))) {
                     state.outlineColor = ARGB.opaque(entity.getTeamColor());
                 }
 
-                if (AntiInvisConfig.isShowNameBadge()) {
+                if (TrueVisionConfig.isShowNameBadge()) {
                     attachNameBadge(entity, state, partialTick);
                 }
             }
