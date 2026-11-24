@@ -5,10 +5,12 @@
   "name": "TrueVision",
   "description": "Client-side Minecraft 26.3 mod that reveals invisible players and mobs using the native Render State pipeline. Works on all multiplayer servers and singleplayer worlds with full Sodium, Iris, ImmediatelyFast, and ViaFabricPlus compatibility.",
   "authors": [
-    "Antigravity"
+    "Kazim"
   ],
   "contact": {
-    "sources": "https://github.com/example/truevision"
+    "homepage": "https://github.com/Qazcto7/TrueVision",
+    "sources": "https://github.com/Qazcto7/TrueVision",
+    "issues": "https://github.com/Qazcto7/TrueVision/issues"
   },
   "license": "MIT",
   "icon": "assets/truevision/icon.png",

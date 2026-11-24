@@ -48,10 +48,10 @@ Settings are automatically saved atomically to:
 
 ---
 
-## Building (`derle.sh`)
+## Building Locally (`build.sh`)
 
 ```bash
-./derle.sh
+./build.sh
 ```
 
 Compiles all Java sources with `--release 25 -encoding UTF-8`, packages `build/libs/TrueVision-26.3-1.0.0.jar`, and installs it into `$SKLAUNCHER_DIR/instances/fabric-latest/mods/` when present.
