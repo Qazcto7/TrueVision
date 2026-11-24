@@ -11,14 +11,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Minecraft sınıfındaki shouldEntityAppearGlowing metoduna müdahale eder.
+ * Hooks Minecraft.shouldEntityAppearGlowing for OPAQUE_GLOWING mode.
  *
- * MİMARİ AMACI:
- * OPAQUE_GLOWING modunda görünmez bir varlığın zırhı ve modeli tam opak render edilirken,
- * EntityRenderer'ın bu varlığa parlayan dış hat (outline buffer) atamasını sağlar.
- *
- * seeThroughWalls ayarı kapalıysa, katı blokların arkasındaki varlıklar için parlamayı tetiklemez
- * (cam gibi şeffaf bloklar ClipContext.Block.VISUAL ile görüşü kesmez).
+ * Enables Minecraft's native outline buffer for revealed invisible entities while
+ * respecting the seeThroughWalls visual line-of-sight option (transparent blocks such as
+ * glass do not block vision).
  */
 @Mixin(value = Minecraft.class, priority = 1100)
 public abstract class MinecraftMixin {

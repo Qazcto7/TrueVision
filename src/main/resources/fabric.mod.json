@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "id": "antiinvis",
   "version": "1.0.0",
-  "name": "Anti-Invisibility (True Vision)",
-  "description": "Minecraft 26.3 Render State mimarisine özel, Sodium, Iris ve ImmediatelyFast uyumlu istemci taraflı görünmezlik engelleyici modu.",
+  "name": "TrueVision (Anti-Invisibility)",
+  "description": "Client-side Minecraft 26.3 True Vision mod that reveals invisible players and mobs using the Render State pipeline. Works on all multiplayer servers and singleplayer worlds, with full Sodium, Iris, ImmediatelyFast, and ViaFabricPlus compatibility.",
   "authors": [
     "Antigravity"
   ],

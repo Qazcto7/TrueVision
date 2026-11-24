@@ -21,8 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * İstemci tarafı mod ana giriş noktası.
- * Kısayol tuşlarını ('V' ve 'B'), /antiinvis ve /ai komutlarını ve bildirimleri yönetir.
+ * Client-side entrypoint for TrueVision (Anti-Invisibility).
+ * Manages keybindings ('V' and 'B'), client-only /antiinvis and /ai commands, and HUD notifications.
+ * Sends zero network packets so it works seamlessly on all multiplayer servers and singleplayer worlds.
  */
 public class AntiInvisClient implements ClientModInitializer {
     public static final String MOD_ID = "antiinvis";
@@ -35,7 +36,7 @@ public class AntiInvisClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        LOGGER.info("[Anti-Invis] İstemci modu başlatılıyor...");
+        LOGGER.info("[TrueVision] Initializing client mod...");
 
         AntiInvisConfig.load();
 
@@ -43,31 +44,31 @@ public class AntiInvisClient implements ClientModInitializer {
         try {
             category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "title"));
         } catch (Exception e) {
-            LOGGER.warn("[Anti-Invis] Özel tuş kategorisi kaydedilemedi, GAMEPLAY kategorisi kullanılıyor.", e);
+            LOGGER.warn("[TrueVision] Could not register custom key category; falling back to GAMEPLAY.", e);
             category = KeyMapping.Category.GAMEPLAY;
         }
 
-        // 1. Aç/Kapa kısayol tuşu ('V' tuşu)
+        // 1. Toggle keybind (default: 'V')
         toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.antiinvis.toggle",
             InputConstants.KEY_V,
             category
         ));
 
-        // 2. Görünüm modu değiştirme kısayol tuşu ('B' tuşu)
+        // 2. Cycle vision mode keybind (default: 'B')
         modeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.antiinvis.cycle_mode",
             InputConstants.KEY_B,
             category
         ));
 
-        // İstemci tick dinleyicisi: tuş tıklamalarını yakala
+        // Client tick listener for debounced key handling
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client == null || client.player == null || toggleKey == null || modeKey == null) {
+            if (client == null || client.player == null || client.level == null || toggleKey == null || modeKey == null) {
                 return;
             }
 
-            // Sohbet, envanter veya herhangi bir GUI ekranı açıkken basılan tuşları tüket ve modu tetikleme
+            // Drain key clicks while any GUI screen or loading overlay is active
             if (client.gui != null && (client.gui.screen() != null || client.gui.overlay() != null)) {
                 while (toggleKey.consumeClick()) {}
                 while (modeKey.consumeClick()) {}
@@ -85,16 +86,29 @@ public class AntiInvisClient implements ClientModInitializer {
             }
         });
 
-        // Sohbet komutları (/antiinvis ve /ai)
+        // Client-side chat commands (/antiinvis and /ai) — handled locally, never sent to servers
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(buildRootCommand("ai"));
             dispatcher.register(buildRootCommand("antiinvis"));
         });
 
-        LOGGER.info("[Anti-Invis] Başarıyla yüklendi. 'V' ve 'B' tuşları aktif, /antiinvis ve /ai komutları devrede.");
+        LOGGER.info("[TrueVision] Loaded successfully. Keybinds [V]/[B] and client commands /antiinvis & /ai are active.");
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> buildRootCommand(String name) {
+        LiteralArgumentBuilder<FabricClientCommandSource> modeNode = literal("mode")
+            .executes(context -> {
+                cycleModeAction(Minecraft.getInstance());
+                return 1;
+            });
+
+        for (VisionMode mode : VisionMode.values()) {
+            modeNode.then(literal(mode.getCommandKey()).executes(context -> {
+                setModeAction(Minecraft.getInstance(), mode);
+                return 1;
+            }));
+        }
+
         return literal(name)
             .executes(context -> {
                 toggleAction(Minecraft.getInstance());
@@ -104,12 +118,13 @@ public class AntiInvisClient implements ClientModInitializer {
                 toggleAction(Minecraft.getInstance());
                 return 1;
             }))
-            .then(literal("mode").executes(context -> {
-                cycleModeAction(Minecraft.getInstance());
+            .then(modeNode)
+            .then(literal("walls").executes(context -> {
+                toggleThroughWallsAction(context.getSource());
                 return 1;
             }))
-            .then(literal("wallhack").executes(context -> {
-                toggleWallhackAction(context.getSource());
+            .then(literal("throughwalls").executes(context -> {
+                toggleThroughWallsAction(context.getSource());
                 return 1;
             }))
             .then(literal("players").executes(context -> {
@@ -142,9 +157,9 @@ public class AntiInvisClient implements ClientModInitializer {
 
         playClickSound(client, newState ? 1.2f : 0.8f);
 
-        String status = newState ? "§aAÇIK" : "§cKAPALI";
+        String status = newState ? "§aON" : "§cOFF";
         String modeName = AntiInvisConfig.getVisionMode().getDisplayName();
-        String message = "§6[Anti-Invis] " + status + (newState ? " §7(Mod: " + modeName + "§7)" : "");
+        String message = "§6[TrueVision] " + status + (newState ? " §7(Mode: " + modeName + "§7)" : "");
 
         if (client.player != null) {
             client.player.sendOverlayMessage(Component.literal(message));
@@ -154,25 +169,31 @@ public class AntiInvisClient implements ClientModInitializer {
             SystemToast.addOrUpdate(
                 client.gui.toastManager(),
                 TOAST_ID,
-                Component.literal("§6Anti-Invis"),
+                Component.literal("§6TrueVision"),
                 Component.literal(status + (newState ? " §7(" + modeName + "§7)" : ""))
             );
         }
     }
 
     public static void cycleModeAction(Minecraft client) {
+        notifyModeChange(client, AntiInvisConfig.cycleMode());
+    }
+
+    public static void setModeAction(Minecraft client, VisionMode mode) {
+        notifyModeChange(client, AntiInvisConfig.setVisionMode(mode));
+    }
+
+    private static void notifyModeChange(Minecraft client, VisionMode newMode) {
         if (client == null) {
             client = Minecraft.getInstance();
         }
-
-        VisionMode newMode = AntiInvisConfig.cycleMode();
         if (client == null) {
             return;
         }
 
         playClickSound(client, 1.0f);
 
-        String message = "§6[Anti-Invis] §7Görünüm Modu: " + newMode.getDisplayName();
+        String message = "§6[TrueVision] §7Vision Mode: " + newMode.getDisplayName();
 
         if (client.player != null) {
             client.player.sendOverlayMessage(Component.literal(message));
@@ -182,29 +203,29 @@ public class AntiInvisClient implements ClientModInitializer {
             SystemToast.addOrUpdate(
                 client.gui.toastManager(),
                 TOAST_ID,
-                Component.literal("§6Görünüm Modu"),
+                Component.literal("§6Vision Mode"),
                 Component.literal(newMode.getDisplayName())
             );
         }
     }
 
-    private static void toggleWallhackAction(FabricClientCommandSource source) {
+    private static void toggleThroughWallsAction(FabricClientCommandSource source) {
         boolean stw = AntiInvisConfig.toggleSeeThroughWalls();
-        String msg = "§6[Anti-Invis] §7Duvardan Görme (Wallhack): " + (stw ? "§aAÇIK" : "§cKAPALI");
+        String msg = "§6[TrueVision] §7See Through Walls: " + (stw ? "§aON" : "§cOFF §7(Line of Sight Only)");
         source.sendFeedback(Component.literal(msg));
         playClickSound(Minecraft.getInstance(), stw ? 1.2f : 0.8f);
     }
 
     private static void togglePlayersOnlyAction(FabricClientCommandSource source) {
         boolean po = AntiInvisConfig.toggleAffectPlayersOnly();
-        String msg = "§6[Anti-Invis] §7Yalnızca Oyuncuları Göster: " + (po ? "§aAÇIK (Sadece Oyuncular)" : "§eKAPALI (Tüm Varlıklar)");
+        String msg = "§6[TrueVision] §7Target Filter: " + (po ? "§aPlayers Only" : "§eAll Living Entities (Players & Mobs)");
         source.sendFeedback(Component.literal(msg));
         playClickSound(Minecraft.getInstance(), po ? 1.2f : 0.8f);
     }
 
     private static void toggleBadgeAction(FabricClientCommandSource source) {
         boolean badge = AntiInvisConfig.toggleShowNameBadge();
-        String msg = "§6[Anti-Invis] §7[GÖRÜNMEZ] İsim Etiketi: " + (badge ? "§aAÇIK" : "§cKAPALI");
+        String msg = "§6[TrueVision] §7[INVIS] Nametag Badge: " + (badge ? "§aON" : "§cOFF");
         source.sendFeedback(Component.literal(msg));
         playClickSound(Minecraft.getInstance(), badge ? 1.2f : 0.8f);
     }
@@ -228,42 +249,42 @@ public class AntiInvisClient implements ClientModInitializer {
     private static void sendStatusReport(FabricClientCommandSource source) {
         boolean enabled = AntiInvisConfig.isEnabled();
         VisionMode mode = AntiInvisConfig.getVisionMode();
-        boolean wallhack = AntiInvisConfig.isSeeThroughWalls();
+        boolean throughWalls = AntiInvisConfig.isSeeThroughWalls();
         boolean playersOnly = AntiInvisConfig.isAffectPlayersOnly();
         boolean badge = AntiInvisConfig.isShowNameBadge();
         String toggleLabel = getKeyDisplayName(toggleKey, "V");
         String modeLabel = getKeyDisplayName(modeKey, "B");
 
-        source.sendFeedback(Component.literal("§6===== [Anti-Invisibility Durum Raporu] ====="));
-        source.sendFeedback(Component.literal("§7Durum: " + (enabled ? "§aAÇIK" : "§cKAPALI")));
-        source.sendFeedback(Component.literal("§7Görünüm Modu: §e" + mode.getDisplayName() + " §8(" + mode.getDescription() + ")"));
-        source.sendFeedback(Component.literal("§7Duvardan Görme (Wallhack): " + (wallhack ? "§aAÇIK" : "§cKAPALI")));
-        source.sendFeedback(Component.literal("§7Yalnızca Oyuncular: " + (playersOnly ? "§aAÇIK (Sadece Oyuncular)" : "§eKAPALI (Tüm Varlıklar)")));
-        source.sendFeedback(Component.literal("§7[GÖRÜNMEZ] İsim Etiketi: " + (badge ? "§aAÇIK" : "§cKAPALI")));
-        source.sendFeedback(Component.literal("§7Kısayol Tuşları: §f[" + toggleLabel + "] §7Aç/Kapa | §f[" + modeLabel + "] §7Mod Değiştir"));
-        source.sendFeedback(Component.literal("§7Komutlar: §f/ai §7| §f/ai mode §7| §f/ai wallhack §7| §f/ai players §7| §f/ai badge §7| §f/ai status §7| §f/ai help"));
-        source.sendFeedback(Component.literal("§6==========================================="));
+        source.sendFeedback(Component.literal("§6===== [TrueVision Status] ====="));
+        source.sendFeedback(Component.literal("§7Status: " + (enabled ? "§aON" : "§cOFF")));
+        source.sendFeedback(Component.literal("§7Vision Mode: " + mode.getDisplayName() + " §8(" + mode.getDescription() + ")"));
+        source.sendFeedback(Component.literal("§7See Through Walls: " + (throughWalls ? "§aON" : "§cOFF (Line of Sight Only)")));
+        source.sendFeedback(Component.literal("§7Target Filter: " + (playersOnly ? "§aPlayers Only" : "§eAll Living Entities (Players & Mobs)")));
+        source.sendFeedback(Component.literal("§7[INVIS] Nametag Badge: " + (badge ? "§aON" : "§cOFF")));
+        source.sendFeedback(Component.literal("§7Keybinds: §f[" + toggleLabel + "] §7Toggle | §f[" + modeLabel + "] §7Cycle Mode"));
+        source.sendFeedback(Component.literal("§7Commands: §f/ai §7| §f/ai mode §7| §f/ai walls §7| §f/ai players §7| §f/ai badge §7| §f/ai status §7| §f/ai help"));
+        source.sendFeedback(Component.literal("§6==============================="));
     }
 
     private static void sendHelpReport(FabricClientCommandSource source) {
         String toggleLabel = getKeyDisplayName(toggleKey, "V");
         String modeLabel = getKeyDisplayName(modeKey, "B");
 
-        source.sendFeedback(Component.literal("§6===== [Anti-Invisibility Komut Yardımı] ====="));
-        source.sendFeedback(Component.literal("§f/ai §8(veya /ai toggle) §7- Modu açar / kapatır"));
-        source.sendFeedback(Component.literal("§f/ai mode §7- Görünüm modunu sırayla değiştirir"));
-        source.sendFeedback(Component.literal("§f/ai wallhack §7- Duvardan parlamayı (ESP) açar / kapatır"));
-        source.sendFeedback(Component.literal("§f/ai players §7- Yalnızca oyuncuları hedeflemeyi açar / kapatır"));
-        source.sendFeedback(Component.literal("§f/ai badge §7- [GÖRÜNMEZ] isim etiketini açar / kapatır"));
-        source.sendFeedback(Component.literal("§f/ai status §7- Mevcut durum ve yapılandırmayı listeler"));
-        source.sendFeedback(Component.literal("§f/ai help §7- Bu yardım kılavuzunu görüntüler"));
-        source.sendFeedback(Component.literal("§7Kullanılabilir Görünüm Modları:"));
+        source.sendFeedback(Component.literal("§6===== [TrueVision Command Help] ====="));
+        source.sendFeedback(Component.literal("§f/ai §8(or /antiinvis, /ai toggle) §7- Toggle TrueVision ON / OFF"));
+        source.sendFeedback(Component.literal("§f/ai mode §8[glowing|translucent|tagged|pure] §7- Cycle or set vision mode"));
+        source.sendFeedback(Component.literal("§f/ai walls §8(or /ai throughwalls) §7- Toggle outlines & sneaking tags through walls"));
+        source.sendFeedback(Component.literal("§f/ai players §7- Toggle Players Only vs Players & Mobs"));
+        source.sendFeedback(Component.literal("§f/ai badge §7- Toggle the [INVIS] nametag badge"));
+        source.sendFeedback(Component.literal("§f/ai status §7- Show current configuration and status"));
+        source.sendFeedback(Component.literal("§f/ai help §7- Show this help guide"));
+        source.sendFeedback(Component.literal("§7Available Vision Modes:"));
         for (VisionMode mode : VisionMode.values()) {
-            source.sendFeedback(Component.literal("  " + mode.getDisplayName() + " §8- §7" + mode.getDescription()));
+            source.sendFeedback(Component.literal("  §f" + mode.getCommandKey() + " §8(" + mode.getDisplayName() + "§8) §7- " + mode.getDescription()));
         }
-        source.sendFeedback(Component.literal("§7Kısayol Tuşları:"));
-        source.sendFeedback(Component.literal("  §f[" + toggleLabel + "] §7- Modu Aç / Kapat"));
-        source.sendFeedback(Component.literal("  §f[" + modeLabel + "] §7- Görünüm modları arasında geçiş yap"));
-        source.sendFeedback(Component.literal("§6==========================================="));
+        source.sendFeedback(Component.literal("§7Keybinds:"));
+        source.sendFeedback(Component.literal("  §f[" + toggleLabel + "] §7- Toggle TrueVision ON / OFF"));
+        source.sendFeedback(Component.literal("  §f[" + modeLabel + "] §7- Cycle through vision modes"));
+        source.sendFeedback(Component.literal("§6====================================="));
     }
 }

@@ -1,37 +1,42 @@
 package com.antiinvis.config;
 
 /**
- * Anti-Invisibility görsel işleme ve render modları.
+ * Visual rendering modes for revealed invisible entities.
  */
 public enum VisionMode {
     /**
-     * Varlığın modeli, zırhı ve elindeki eşyalar tam opak render edilir;
-     * ayrıca dış hatlarında parlayan bir silüet (outline/glowing) oluşturulur.
-     * Bu sayede hem ne giyip tuttuğu net görülür hem de görünmez olduğu anında anlaşılır.
+     * Renders the entity's model, armor, and held items fully opaque
+     * with a glowing outline for immediate visibility.
      */
-    OPAQUE_GLOWING("§eTam Opak + Parlama", "Opak model, zırh, eşyalar ve parlayan dış çizgi"),
+    OPAQUE_GLOWING("glowing", "§eOpaque + Outline", "Solid model, armor, held items, and glowing outline"),
 
     /**
-     * Spectator (İzleyici) modundaki gibi yarı saydam (translucent / alpha ~0.5f) hayalet görünümü.
+     * Spectator-style semi-transparent ghost rendering.
      */
-    TRANSLUCENT("§bYarı Saydam (Spectator)", "İzleyici modu benzeri yarı saydam hayalet görünümü"),
+    TRANSLUCENT("translucent", "§bTranslucent (Ghost)", "Spectator-style semi-transparent ghost rendering"),
 
     /**
-     * Varlık tam opak render edilir ve isim etiketinin başına "[GÖRÜNMEZ]" belirteci eklenir.
+     * Renders the entity fully opaque and prefixes its nametag with an [INVIS] badge.
      */
-    OPAQUE_TAGGED("§6Tam Opak + İsim Etiketi", "Tam opak render ve isim üzerinde görünmezlik etiketi"),
+    OPAQUE_TAGGED("tagged", "§6Opaque + Badge", "Solid model with an [INVIS] nametag indicator"),
 
     /**
-     * Tam opak render (görünmezlik etkisi tamamen yok sayılarak normal bir varlık gibi render edilir).
+     * Renders the entity completely normally without any extra visual markers.
      */
-    OPAQUE_PURE("§aTam Opak (Saf)", "Görünmezlik yok sayılır, tamamen normal render edilir");
+    OPAQUE_PURE("pure", "§aOpaque (Pure)", "Normal solid rendering with no extra indicators");
 
+    private final String commandKey;
     private final String displayName;
     private final String description;
 
-    VisionMode(String displayName, String description) {
+    VisionMode(String commandKey, String displayName, String description) {
+        this.commandKey = commandKey;
         this.displayName = displayName;
         this.description = description;
+    }
+
+    public String getCommandKey() {
+        return commandKey;
     }
 
     public String getDisplayName() {
@@ -43,7 +48,7 @@ public enum VisionMode {
     }
 
     /**
-     * Sıradaki render moduna geçiş yapar (döngüsel).
+     * Cycles to the next vision mode.
      */
     public VisionMode next() {
         VisionMode[] values = values();

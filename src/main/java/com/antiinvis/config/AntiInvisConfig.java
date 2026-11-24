@@ -15,7 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 /**
- * Mod ayarlarını yöneten ve .minecraft/config/antiinvis.json dosyasına atomik olarak kaydeden sınıf.
+ * Manages client-side configuration and persists it atomically to .minecraft/config/antiinvis.json.
  */
 public class AntiInvisConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger("antiinvis");
@@ -24,7 +24,7 @@ public class AntiInvisConfig {
 
     private static volatile AntiInvisConfig INSTANCE = new AntiInvisConfig();
 
-    // Ayar değişkenleri (thread-safe okuma için volatile)
+    // Configuration fields (volatile for cross-thread visibility)
     private volatile boolean enabled = true;
     private volatile VisionMode visionMode = VisionMode.OPAQUE_GLOWING;
     private volatile boolean seeThroughWalls = true;
@@ -45,6 +45,13 @@ public class AntiInvisConfig {
     public static VisionMode getVisionMode() {
         VisionMode mode = INSTANCE.visionMode;
         return mode != null ? mode : VisionMode.OPAQUE_GLOWING;
+    }
+
+    public static synchronized VisionMode setVisionMode(VisionMode mode) {
+        VisionMode target = (mode != null) ? mode : VisionMode.OPAQUE_GLOWING;
+        INSTANCE.visionMode = target;
+        save();
+        return target;
     }
 
     public static synchronized VisionMode cycleMode() {
@@ -96,16 +103,16 @@ public class AntiInvisConfig {
         try (Reader reader = Files.newBufferedReader(CONFIG_PATH, StandardCharsets.UTF_8)) {
             AntiInvisConfig config = GSON.fromJson(reader, AntiInvisConfig.class);
             if (config == null) {
-                LOGGER.warn("[Anti-Invis] Yapılandırma dosyası boş veya geçersiz, varsayılan ayarlar korunuyor.");
+                LOGGER.warn("[TrueVision] Config file is empty or invalid; keeping defaults.");
                 return;
             }
             if (config.visionMode == null) {
-                LOGGER.warn("[Anti-Invis] Geçersiz visionMode değeri tespit edildi, varsayılan (OPAQUE_GLOWING) kullanılıyor.");
+                LOGGER.warn("[TrueVision] Invalid visionMode in config; falling back to OPAQUE_GLOWING.");
                 config.visionMode = VisionMode.OPAQUE_GLOWING;
             }
             INSTANCE = config;
         } catch (Exception e) {
-            LOGGER.error("[Anti-Invis] Yapılandırma dosyası okunamadı, varsayılan ayarlar korunuyor.", e);
+            LOGGER.error("[TrueVision] Failed to read config file; keeping defaults.", e);
         }
     }
 
@@ -124,7 +131,7 @@ public class AntiInvisConfig {
                 Files.move(tempPath, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (Exception e) {
-            LOGGER.error("[Anti-Invis] Yapılandırma dosyası diske kaydedilemedi.", e);
+            LOGGER.error("[TrueVision] Failed to save config file to disk.", e);
             try {
                 Files.deleteIfExists(tempPath);
             } catch (Exception ignored) {}

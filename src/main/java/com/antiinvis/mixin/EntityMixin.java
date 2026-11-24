@@ -11,14 +11,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Entity sınıfının isInvisibleTo kontrolüne müdahale eder.
+ * Hooks Entity.isInvisibleTo purely for the local client player's perspective.
  *
- * Anti-Invis devredeyken istemci oyuncusuna karşı hedef varlıkların görünmez sayılmasını
- * engelleyerek nişangah odaklanması, isim etiketi ve genel istemci mantığında varlığı görünür kılar.
+ * Strictly isolates the integrated server thread and LAN guests in singleplayer by checking
+ * {@code player != mc.player}, ensuring zero impact on server-side AI or game logic.
  *
- * Mod Uyumluluğu:
- * - Kesinlikle @Overwrite kullanılmaz.
- * - priority = 1100 ve require = 0 sayesinde ViaFabricPlus ve optimizasyon modlarıyla çakışmaz.
+ * Modpack compatibility:
+ * - Zero @Overwrite annotations.
+ * - priority = 1100 and require = 0 for conflict-free interoperability with ViaFabricPlus and optimization mods.
  */
 @Mixin(value = Entity.class, priority = 1100)
 public abstract class EntityMixin {
@@ -34,8 +34,7 @@ public abstract class EntityMixin {
             return;
         }
 
-        // Tek oyunculuda yerel sunucu (integrated server) iş parçacığını ve diğer oyuncuları etkilememek için
-        // yalnızca yerel istemci oyuncusunun (LocalPlayer) bakış açısına müdahale et.
+        // Only affect the local client player's view (never integrated server or LAN ServerPlayers)
         Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.player == null || player != mc.player) {
             return;

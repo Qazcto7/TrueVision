@@ -1,43 +1,57 @@
-# Anti-Invisibility (True Vision) - Minecraft 26.3
+# TrueVision (Anti-Invisibility) — Minecraft 26.3
 
-Minecraft 26.3 (Fabric Loader, Mojang Mappings, Java 25+) için geliştirilmiş, **Sodium**, **Iris**, **ImmediatelyFast**, **ModernFix**, **NoRender**, **ViaFabricPlus** ve **HyperBoost** gibi agresif render & optimizasyon modlarıyla tam uyumlu çalışan istemci taraflı (client-side) görünmezlik engelleyici / True Vision modu.
+A lightweight, **100% client-side** Fabric mod for **Minecraft 26.3 (Java 25+, Mojang Mappings)** that reveals invisible players and mobs using Minecraft's modern Render State pipeline.
 
----
-
-## 🌟 Öne Çıkan Özellikler
-
-1. **Minecraft 26.3 Render State Mimarisi ile Tam Uyum**:
-   - Minecraft 26.3 `LivingEntityRenderState` ve `AvatarRenderState` veri çıkarma (extraction) katmanında çalışır.
-   - Doğrudan çizim komutlarına (`submit/render`) dokunulmaz; mevcut vanilla parlama efektleri (Spectral Arrow vb.) korunur.
-   - Zırhlar (`HumanoidArmorLayer`), elde tutulan eşyalar (`PlayerItemInHandLayer`), pelerinler ve elytra kanatları normal bir varlık gibi render kuyruğuna sokulur.
-   - Çok oyunculu sunuculardaki hologram `ArmorStand` ve dekoratif `ItemFrame` varlıkları otomatik olarak hariç tutulur.
-
-2. **Gelişmiş Görünmezlik Tespiti ve İsim Fallback'i**:
-   - Hem metadata bayrağı (`entity.isInvisible()`) hem de sunucu kaynaklı iksir etkileri (`entity.hasEffect(MobEffects.INVISIBILITY)`) taranır.
-   - Eğilen (crouching/sneaking) veya etiketleri gizlenmiş görünmez oyuncuların isimleri `entity.getDisplayName()` / `entity.getName()` fallback'i ile çekilerek renk sızıntısı olmadan `[GÖRÜNMEZ]` etiketi eklenir; F1 (HUD gizli) ve F5/Freecam kamera varlığı otomatik korunur.
-
-3. **Görünüm Modları ve Duvardan Parlama Filtresi (`seeThroughWalls`)**:
-   - `OPAQUE_GLOWING`, `TRANSLUCENT`, `OPAQUE_TAGGED` ve `OPAQUE_PURE` modları arasında anında geçiş yapılabilir.
-   - `OPAQUE_GLOWING` modunda `seeThroughWalls = false` seçildiğinde `ClipContext.Block.VISUAL` görüş hattı kontrolü ile cam gibi şeffaf blokların arkasındaki oyuncular parlamaya devam ederken katı duvar arkasındakiler parlamaz.
-
-4. **Kısayol Tuşları, Komutlar ve Bildirimler**:
-   - **`V` Tuşu**: Modu anında AÇAR / KAPATIR.
-   - **`B` Tuşu**: Görsel render modları arasında döngüsel geçiş yapar.
-   - **Komutlar (`/ai` veya `/antiinvis`)**: `toggle`, `mode`, `wallhack`, `players`, `badge`, `status`, `help`.
-   - Tuş ve komut işlemlerinde hafif bir UI tıklama sesi çalar, alt kısımda **ActionBar** mesajı ve sağ üstte **Toast** bildirimi gösterilir.
+Works out of the box on **all multiplayer servers** (Vanilla, Paper, Spigot, Purpur, Folia, BungeeCord, Velocity, Realms, Fabric/NeoForge, and ViaFabricPlus multi-version servers) as well as **all singleplayer and LAN worlds** — sends **zero network packets** and requires **no server-side installation**.
 
 ---
 
-## 🛠️ Bağımsız Derleme (`derle.sh`)
+## Features
 
-Sisteminizde Gradle kurulu olmasına gerek yoktur. Tıpkı HyperBoost projesinde olduğu gibi doğrudan Java 25/27 `javac` ve SKLauncher kütüphanelerini kullanarak derleme yapar:
+1. **Native Minecraft 26.3 Render State Architecture**:
+   - Hooks `LivingEntityRenderState` / `AvatarRenderState` extraction cleanly without touching vertex buffers or draw calls (`submit`/`render`).
+   - Fully compatible with **Sodium**, **Iris**, **ImmediatelyFast**, **ModernFix**, **NoRender**, **Freecam**, **ViaFabricPlus**, and large client modpacks (`priority = 1100`, `require = 0`, zero `@Overwrite`).
+   - Preserves vanilla glowing effects (such as Spectral Arrows) and excludes multiplayer server holograms (`ArmorStand`) and decorative invisible entities (`ItemFrame`, `Display`, `Marker`).
+
+2. **Four Customizable Vision Modes**:
+   - **`glowing` (Opaque + Outline)**: Solid model, armor, held items, cape, and a glowing outline.
+   - **`translucent` (Translucent / Ghost)**: Spectator-style semi-transparent ghost rendering.
+   - **`tagged` (Opaque + Badge)**: Solid rendering with an `[INVIS]` badge on the nametag.
+   - **`pure` (Opaque / Pure)**: Normal solid rendering with no extra visual indicators.
+
+3. **Smart Nametag & Line-of-Sight Handling**:
+   - Detects both synced entity metadata flags (`entity.isInvisible()`) and local potion effects (`MobEffects.INVISIBILITY`).
+   - Recovers hidden, sneaking, or blank-display-name tags with a color-safe `[INVIS]` prefix while respecting `F1` (Hide HUD) and `F5`/Freecam/Spectator camera entities.
+   - Toggleable **See Through Walls** setting: when disabled, uses `ClipContext.Block.VISUAL` so transparent blocks (glass, iron bars, fences) never block vision while solid walls suppress outlines.
+
+4. **Controls, Commands & Feedback**:
+   - **`V` Key**: Toggle TrueVision ON / OFF (rebindable under *Controls → TrueVision*).
+   - **`B` Key**: Cycle between vision modes.
+   - **Client-Only Commands (`/ai` or `/antiinvis`)**:
+     - `/ai` or `/ai toggle` — Toggle ON / OFF
+     - `/ai mode [glowing|translucent|tagged|pure]` — Cycle or directly select a vision mode
+     - `/ai walls` (or `/ai throughwalls`) — Toggle outlines and sneaking nametags through walls
+     - `/ai players` — Toggle Players Only vs All Living Entities (Players & Mobs)
+     - `/ai badge` — Toggle the `[INVIS]` nametag badge
+     - `/ai status` — View current settings and active keybinds
+     - `/ai help` — Show command and vision mode guide
+   - Plays a subtle UI click sound with ActionBar and Toast notifications.
+
+---
+
+## Configuration
+
+Settings are automatically saved atomically to:
+```text
+.minecraft/config/antiinvis.json
+```
+
+---
+
+## Building (`derle.sh`)
 
 ```bash
 ./derle.sh
 ```
 
-Betiğin yaptığı işlemler:
-1. Java 27 / 25 (`javac`) tespit eder.
-2. Minecraft 26.3 (`26.3.jar`), Fabric Loader, Sponge Mixin, Gson ve Fabric API kütüphanelerini classpath'e ekler.
-3. Kaynak kodları `--release 25` ile derler ve `build/libs/AntiInvis-26.3-1.0.0.jar` dosyasını oluşturur.
-4. Oluşan JAR'ı otomatik olarak `~/.sklauncher/instances/fabric-latest/mods/` dizinine kurar.
+Compiles all Java sources with `--release 25 -encoding UTF-8`, packages `build/libs/AntiInvis-26.3-1.0.0.jar`, and installs it into `$SKLAUNCHER_DIR/instances/fabric-latest/mods/` when present.

@@ -10,19 +10,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Minecraft 26.3 Render State Mimarisinde LivingEntityRenderer veri çıkarma katmanına müdahale eder.
+ * Hooks the Minecraft 26.3 Render State extraction layer in LivingEntityRenderer.
  *
- * MİMARİ AÇIKLAMA:
- * Minecraft 26.3'te render mantığı doğrudan Entity üzerinden değil, extractRenderState ile üretilen
- * LivingEntityRenderState / AvatarRenderState nesneleri üzerinden yürütülür.
+ * Delegates all logic to {@link VisionHelper#applyRenderState} outside the mixin package,
+ * keeping injected bytecode minimal and preventing synthetic inner classes inside the mixin package.
  *
- * Tüm iş mantığı mixin paketi dışındaki {@link VisionHelper#applyRenderState} metoduna delege edilir;
- * böylece hedef sınıfa enjekte edilen bytecode minimumda kalır ve sentetik iç sınıf ($1) üretilmez.
- *
- * UYUMLULUK:
- * - Doğrudan çizim komutlarına (submit/render), VertexConsumer'a veya MultiBufferSource tamponlarına dokunulmaz.
- * - Sodium, Iris ve ImmediatelyFast buffer/mesh mekanizmaları hiçbir şekilde bozulmaz.
- * - priority = 1100 ve require = 0 sayesinde enjektör hatasız çalışır.
+ * Compatibility:
+ * - Never touches draw calls (submit/render), VertexConsumer, or MultiBufferSource buffers.
+ * - Fully compatible with Sodium, Iris, ImmediatelyFast, ModernFix, NoRender, and ViaFabricPlus.
+ * - Uses priority = 1100 and require = 0 for conflict-free injection.
  */
 @Mixin(value = LivingEntityRenderer.class, priority = 1100)
 public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extends LivingEntityRenderState> {

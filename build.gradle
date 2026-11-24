@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-    // Minecraft 26.3 & Mojang Resmi Eşlemeleri (Official Mojang Mappings)
+    // Minecraft 26.3 & Official Mojang Mappings
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings loom.officialMojangMappings()
 
