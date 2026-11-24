@@ -30,17 +30,6 @@ public class AntiInvisClient implements ClientModInitializer {
 
     private static final SystemToast.SystemToastId TOAST_ID = new SystemToast.SystemToastId(2500L);
 
-    private static final KeyMapping.Category CATEGORY;
-    static {
-        KeyMapping.Category cat;
-        try {
-            cat = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("antiinvis", "title"));
-        } catch (Exception e) {
-            cat = KeyMapping.Category.GAMEPLAY;
-        }
-        CATEGORY = cat;
-    }
-
     private static KeyMapping toggleKey;
     private static KeyMapping modeKey;
 
@@ -50,35 +39,31 @@ public class AntiInvisClient implements ClientModInitializer {
 
         AntiInvisConfig.load();
 
-        // Minecraft 26.3 tablosundaki 'V' (25) ve 'B' (5) değerlerini bağla (hata korumalı)
-        int keyV = 25;
-        int keyB = 5;
+        KeyMapping.Category category;
         try {
-            keyV = InputConstants.getKey("key.keyboard.v").getValue();
-            keyB = InputConstants.getKey("key.keyboard.b").getValue();
-        } catch (Exception ignored) {}
+            category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "title"));
+        } catch (Exception e) {
+            LOGGER.warn("[Anti-Invis] Özel tuş kategorisi kaydedilemedi, GAMEPLAY kategorisi kullanılıyor.", e);
+            category = KeyMapping.Category.GAMEPLAY;
+        }
 
         // 1. Aç/Kapa kısayol tuşu ('V' tuşu)
         toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.antiinvis.toggle",
-            keyV,
-            CATEGORY
+            InputConstants.KEY_V,
+            category
         ));
 
         // 2. Görünüm modu değiştirme kısayol tuşu ('B' tuşu)
         modeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.antiinvis.cycle_mode",
-            keyB,
-            CATEGORY
+            InputConstants.KEY_B,
+            category
         ));
 
         // İstemci tick dinleyicisi: tuş tıklamalarını yakala
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client == null || client.player == null) {
-                return;
-            }
-
-            if (toggleKey == null || modeKey == null) {
+            if (client == null || client.player == null || toggleKey == null || modeKey == null) {
                 return;
             }
 
@@ -150,14 +135,12 @@ public class AntiInvisClient implements ClientModInitializer {
             client = Minecraft.getInstance();
         }
 
-        boolean newState = !AntiInvisConfig.isEnabled();
-        AntiInvisConfig.setEnabled(newState);
-
-        if (client.getSoundManager() != null) {
-            client.getSoundManager().play(
-                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, newState ? 1.2f : 0.8f)
-            );
+        boolean newState = AntiInvisConfig.toggleEnabled();
+        if (client == null) {
+            return;
         }
+
+        playClickSound(client, newState ? 1.2f : 0.8f);
 
         String status = newState ? "§aAÇIK" : "§cKAPALI";
         String modeName = AntiInvisConfig.getVisionMode().getDisplayName();
@@ -183,12 +166,11 @@ public class AntiInvisClient implements ClientModInitializer {
         }
 
         VisionMode newMode = AntiInvisConfig.cycleMode();
-
-        if (client.getSoundManager() != null) {
-            client.getSoundManager().play(
-                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f)
-            );
+        if (client == null) {
+            return;
         }
+
+        playClickSound(client, 1.0f);
 
         String message = "§6[Anti-Invis] §7Görünüm Modu: " + newMode.getDisplayName();
 
@@ -210,39 +192,37 @@ public class AntiInvisClient implements ClientModInitializer {
         boolean stw = AntiInvisConfig.toggleSeeThroughWalls();
         String msg = "§6[Anti-Invis] §7Duvardan Görme (Wallhack): " + (stw ? "§aAÇIK" : "§cKAPALI");
         source.sendFeedback(Component.literal(msg));
-
-        Minecraft client = Minecraft.getInstance();
-        if (client != null && client.getSoundManager() != null) {
-            client.getSoundManager().play(
-                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, stw ? 1.2f : 0.8f)
-            );
-        }
+        playClickSound(Minecraft.getInstance(), stw ? 1.2f : 0.8f);
     }
 
     private static void togglePlayersOnlyAction(FabricClientCommandSource source) {
         boolean po = AntiInvisConfig.toggleAffectPlayersOnly();
         String msg = "§6[Anti-Invis] §7Yalnızca Oyuncuları Göster: " + (po ? "§aAÇIK (Sadece Oyuncular)" : "§eKAPALI (Tüm Varlıklar)");
         source.sendFeedback(Component.literal(msg));
-
-        Minecraft client = Minecraft.getInstance();
-        if (client != null && client.getSoundManager() != null) {
-            client.getSoundManager().play(
-                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, po ? 1.2f : 0.8f)
-            );
-        }
+        playClickSound(Minecraft.getInstance(), po ? 1.2f : 0.8f);
     }
 
     private static void toggleBadgeAction(FabricClientCommandSource source) {
         boolean badge = AntiInvisConfig.toggleShowNameBadge();
         String msg = "§6[Anti-Invis] §7[GÖRÜNMEZ] İsim Etiketi: " + (badge ? "§aAÇIK" : "§cKAPALI");
         source.sendFeedback(Component.literal(msg));
+        playClickSound(Minecraft.getInstance(), badge ? 1.2f : 0.8f);
+    }
 
-        Minecraft client = Minecraft.getInstance();
+    private static void playClickSound(Minecraft client, float pitch) {
         if (client != null && client.getSoundManager() != null) {
             client.getSoundManager().play(
-                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, badge ? 1.2f : 0.8f)
+                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, pitch)
             );
         }
+    }
+
+    private static String getKeyDisplayName(KeyMapping mapping, String fallback) {
+        if (mapping == null) {
+            return fallback;
+        }
+        String label = mapping.getTranslatedKeyMessage().getString();
+        return (label == null || label.isBlank()) ? fallback : label;
     }
 
     private static void sendStatusReport(FabricClientCommandSource source) {
@@ -251,6 +231,8 @@ public class AntiInvisClient implements ClientModInitializer {
         boolean wallhack = AntiInvisConfig.isSeeThroughWalls();
         boolean playersOnly = AntiInvisConfig.isAffectPlayersOnly();
         boolean badge = AntiInvisConfig.isShowNameBadge();
+        String toggleLabel = getKeyDisplayName(toggleKey, "V");
+        String modeLabel = getKeyDisplayName(modeKey, "B");
 
         source.sendFeedback(Component.literal("§6===== [Anti-Invisibility Durum Raporu] ====="));
         source.sendFeedback(Component.literal("§7Durum: " + (enabled ? "§aAÇIK" : "§cKAPALI")));
@@ -258,12 +240,15 @@ public class AntiInvisClient implements ClientModInitializer {
         source.sendFeedback(Component.literal("§7Duvardan Görme (Wallhack): " + (wallhack ? "§aAÇIK" : "§cKAPALI")));
         source.sendFeedback(Component.literal("§7Yalnızca Oyuncular: " + (playersOnly ? "§aAÇIK (Sadece Oyuncular)" : "§eKAPALI (Tüm Varlıklar)")));
         source.sendFeedback(Component.literal("§7[GÖRÜNMEZ] İsim Etiketi: " + (badge ? "§aAÇIK" : "§cKAPALI")));
-        source.sendFeedback(Component.literal("§7Kısayol Tuşları: §f[V] §7Aç/Kapa | §f[B] §7Mod Değiştir"));
+        source.sendFeedback(Component.literal("§7Kısayol Tuşları: §f[" + toggleLabel + "] §7Aç/Kapa | §f[" + modeLabel + "] §7Mod Değiştir"));
         source.sendFeedback(Component.literal("§7Komutlar: §f/ai §7| §f/ai mode §7| §f/ai wallhack §7| §f/ai players §7| §f/ai badge §7| §f/ai status §7| §f/ai help"));
         source.sendFeedback(Component.literal("§6==========================================="));
     }
 
     private static void sendHelpReport(FabricClientCommandSource source) {
+        String toggleLabel = getKeyDisplayName(toggleKey, "V");
+        String modeLabel = getKeyDisplayName(modeKey, "B");
+
         source.sendFeedback(Component.literal("§6===== [Anti-Invisibility Komut Yardımı] ====="));
         source.sendFeedback(Component.literal("§f/ai §8(veya /ai toggle) §7- Modu açar / kapatır"));
         source.sendFeedback(Component.literal("§f/ai mode §7- Görünüm modunu sırayla değiştirir"));
@@ -277,8 +262,8 @@ public class AntiInvisClient implements ClientModInitializer {
             source.sendFeedback(Component.literal("  " + mode.getDisplayName() + " §8- §7" + mode.getDescription()));
         }
         source.sendFeedback(Component.literal("§7Kısayol Tuşları:"));
-        source.sendFeedback(Component.literal("  §f[V] §7- Modu Aç / Kapat"));
-        source.sendFeedback(Component.literal("  §f[B] §7- Görünüm modları arasında geçiş yap"));
+        source.sendFeedback(Component.literal("  §f[" + toggleLabel + "] §7- Modu Aç / Kapat"));
+        source.sendFeedback(Component.literal("  §f[" + modeLabel + "] §7- Görünüm modları arasında geçiş yap"));
         source.sendFeedback(Component.literal("§6==========================================="));
     }
 }
